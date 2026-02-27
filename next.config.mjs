@@ -1,8 +1,10 @@
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-}
+  trailingSlash: true,
+  images: { unoptimized: true },
 
-export default nextConfig
+  eslint: {
+    ignoreDuringBuilds: true, // <-- permite build aunque haya errores de lint
+  },
+};
+
+export default nextConfig;

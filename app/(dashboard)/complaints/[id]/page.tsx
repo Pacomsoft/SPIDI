@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { RoleGuard } from "@/components/role-guard"
@@ -236,7 +236,8 @@ const getTypeBadgeVariant = (type: ComplaintType) => {
   }
 }
 
-export default function ComplaintDetailPage({ params }: { params: { id: string } }) {
+export default function ComplaintDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState<ComplaintDetail | null>(null)
@@ -270,13 +271,13 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
       // Simular delay de red
       await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 300))
       
-      const data = generateComplaintDetail(params.id)
+      const data = generateComplaintDetail(id)
       setDetail(data)
       setLoading(false)
     }
 
     loadDetail()
-  }, [params.id])
+  }, [id])
 
   // Truncar texto si excede el límite
   useEffect(() => {
@@ -531,7 +532,7 @@ export default function ComplaintDetailPage({ params }: { params: { id: string }
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              No se encontró el registro solicitado. El ID "{params.id}" no existe.
+              No se encontró el registro solicitado. El ID "{id}" no existe.
             </AlertDescription>
           </Alert>
         </div>
