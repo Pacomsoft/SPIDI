@@ -49,37 +49,37 @@ const menuItems = [
   {
     title: "Aspirantes",
     icon: Users,
-    url: "/aspirantes",
+    url: "/adm/aspirantes",
     moduleKey: "ASPIRANTES" as ModuleKey,
   },
   {
     title: "Drivers",
     icon: Car,
-    url: "/drivers",
+    url: "/adm/drivers",
     moduleKey: "DRIVERS" as ModuleKey,
   },
   {
     title: "Pagos",
     icon: CreditCard,
-    url: "/pagos",
+    url: "/adm/pagos",
     moduleKey: "PAGOS" as ModuleKey,
   },
   {
     title: "Comunicación",
     icon: MessageSquare,
-    url: "/comunicacion",
+    url: "/adm/comunicacion",
     moduleKey: "COMUNICACION" as ModuleKey,
   },
   {
     title: "Capacitación",
     icon: GraduationCap,
-    url: "/capacitacion",
+    url: "/adm/capacitacion",
     moduleKey: "CAPACITACION" as ModuleKey,
   },
   {
     title: "Contratos",
     icon: FileText,
-    url: "/contratos",
+    url: "/adm/contratos",
     moduleKey: "CONTRATOS" as ModuleKey,
   },
 ]
@@ -107,7 +107,7 @@ export function AppSidebar() {
 
   // Auto-expandir Comunicación si la ruta actual está dentro de sus subitems
   React.useEffect(() => {
-    if (pathname?.startsWith('/complaints')) {
+    if (pathname?.startsWith('/adm/complaints')) {
       setComunicacionOpen(true)
     }
   }, [pathname])
@@ -151,7 +151,7 @@ export function AppSidebar() {
               {filteredMenuItems.map((item) => {
                 // Comunicación tiene submenu
                 if (item.moduleKey === "COMUNICACION") {
-                  const isActive = pathname === item.url || pathname?.startsWith('/complaints')
+                  const isActive = pathname === item.url || pathname?.startsWith('/adm/complaints')
                   return (
                     <Collapsible.Root
                       key={item.title}
@@ -175,9 +175,9 @@ export function AppSidebar() {
                             <SidebarMenuSubItem>
                               <SidebarMenuSubButton 
                                 asChild
-                                isActive={pathname === '/complaints'}
+                                isActive={pathname === '/adm/complaints'}
                               >
-                                <a href="/complaints">
+                                <a href="/adm/complaints">
                                   <MessageCircle className="h-4 w-4" />
                                   <span>Listado de quejas</span>
                                 </a>

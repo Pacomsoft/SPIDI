@@ -490,7 +490,7 @@ export default function AspirantesPage() {
                         className="cursor-pointer hover:bg-accent transition-colors"
                         onClick={() => {
                           setLoadingDetail(true)
-                          router.push(`/aspirantes/${aspirante.id}`)
+                          router.push(`/adm/aspirantes/${aspirante.id}`)
                         }}
                       >
                         <TableCell className="font-medium">{aspirante.id}</TableCell>

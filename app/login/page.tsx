@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { authProvider } from "@/lib/auth"
+import { getHomePageForRole } from "@/lib/roles"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Loader2, Phone } from "lucide-react"
@@ -18,14 +19,22 @@ export default function LoginPage() {
       // Iniciar proceso de login SSO (mock)
       await authProvider.startLogin()
 
+      // Obtener la sesión creada para acceder al rol
+      const session = authProvider.getSession()
+      
+      if (!session) {
+        throw new Error("No se pudo crear la sesión")
+      }
+
       // Verificar si hay una ruta guardada para redirigir
       const redirectPath =
         typeof window !== "undefined"
           ? sessionStorage.getItem("redirect_after_login")
           : null
 
-      // Redirigir al home o a la ruta guardada
-      router.push(redirectPath || "/home")
+      // Si hay una ruta guardada, usarla. Si no, redirigir según el rol
+      const targetPath = redirectPath || getHomePageForRole(session.role)
+      router.push(targetPath)
 
       // Limpiar la ruta guardada
       if (typeof window !== "undefined") {

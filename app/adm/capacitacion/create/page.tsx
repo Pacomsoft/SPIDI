@@ -253,7 +253,7 @@ export default function CreateTrainingPage() {
 
     // Redirigir después de 1.5s
     setTimeout(() => {
-      router.push("/capacitacion")
+      router.push("/adm/capacitacion")
     }, 1500)
   }
 
@@ -268,7 +268,7 @@ export default function CreateTrainingPage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => router.push('/capacitacion')}
+            onClick={() => router.push('/adm/capacitacion')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>

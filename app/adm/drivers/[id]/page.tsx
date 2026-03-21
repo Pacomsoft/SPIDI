@@ -1321,7 +1321,7 @@ export default function DriverDetallePage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push('/drivers')}
+              onClick={() => router.push('/adm/drivers')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>

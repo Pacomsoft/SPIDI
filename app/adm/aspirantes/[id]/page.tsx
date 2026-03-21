@@ -821,7 +821,7 @@ export default function AspiranteDetallePage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push('/aspirantes')}
+              onClick={() => router.push('/adm/aspirantes')}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -1828,7 +1828,7 @@ export default function AspiranteDetallePage() {
         <div className="flex justify-end gap-4 sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 border-t">
           <Button
             variant="outline"
-            onClick={() => router.push('/aspirantes')}
+            onClick={() => router.push('/adm/aspirantes')}
           >
             Cancelar
           </Button>

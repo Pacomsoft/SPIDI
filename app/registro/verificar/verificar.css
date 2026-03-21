@@ -1,0 +1,268 @@
+/* ── Verification Page Styles ── */
+
+/* Phase indicator */
+.verify-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-primary-subtle);
+}
+
+.verify-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  padding: 5px 14px;
+  border-radius: 50px;
+  background: var(--color-primary-ghost);
+  transition: all 0.3s ease;
+}
+
+.verify-step .icon {
+  font-size: 16px;
+}
+
+.verify-step.active {
+  color: #fff;
+  background: var(--color-primary-darker);
+}
+
+.verify-step.done {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.verify-step-divider {
+  color: var(--color-primary-subtle);
+  font-size: 14px;
+}
+
+/* Verify content */
+.verify-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-xlight);
+  display: flex;
+  align-items:center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  transition: all 0.3s ease;
+}
+
+.verify-icon .icon {
+  font-size: 32px;
+  color: var(--color-primary-mid);
+}
+
+.verify-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-primary-darker);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.verify-desc {
+  font-size: 14px;
+  color: var(--color-primary-mid);
+  text-align: center;
+  margin-bottom: 28px;
+  line-height: 1.5;
+}
+
+.verify-desc strong {
+  color: var(--color-primary-darker);
+}
+
+/* OTP inputs */
+.otp-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.otp-input {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid var(--color-primary-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-primary-darker);
+  background: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+  caret-color: var(--color-accent);
+}
+
+.otp-input:focus {
+  border-color: var(--color-primary-mid);
+  box-shadow: 0 0 0 3px rgba(92,110,132,0.12);
+}
+
+.otp-input.error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(225,37,27,0.08);
+  animation: shake 0.4s ease;
+}
+
+.otp-input.success {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+/* Error */
+.verify-error {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-error);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.verify-error .icon {
+  font-size: 16px;
+}
+
+/* Resend */
+.verify-resend {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-primary-mid);
+  margin-top: 20px;
+}
+
+.verify-resend button {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  cursor: not-allowed;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.verify-resend button:not(:disabled) {
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.verify-resend button:not(:disabled):hover {
+  color: var(--color-accent-dark);
+}
+
+/* Success state */
+.verify-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  animation: successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.verify-success-icon .icon {
+  font-size: 32px;
+  color: #fff;
+}
+
+.verify-success-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-success);
+  text-align: center;
+  animation: fadeUp 0.4s ease 0.2s forwards;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* Animations */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes successPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .otp-input {
+    width: 44px;
+    height: 52px;
+    font-size: 22px;
+  }
+  
+  .otp-group {
+    gap: 8px;
+  }
+  
+  .verify-title {
+    font-size: 18px;
+  }
+  
+  .verify-steps {
+    gap: 8px;
+  }
+  
+  .verify-step {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+}
+
+@media (max-width: 375px) {
+  .otp-input {
+    width: 40px;
+    height: 48px;
+    font-size: 20px;
+  }
+  
+  .otp-group {
+    gap: 6px;
+  }
+}

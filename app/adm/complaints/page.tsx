@@ -841,7 +841,7 @@ export default function ComplaintsPage() {
                         className="cursor-pointer hover:bg-muted/50 transition-colors"
                         onClick={() => {
                           setLoadingDetail(true)
-                          router.push(`/complaints/${complaint.id}`)
+                          router.push(`/adm/complaints/${complaint.id}`)
                         }}
                       >
                         <TableCell className="font-medium">{complaint.id}</TableCell>

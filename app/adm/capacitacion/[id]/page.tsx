@@ -59,7 +59,7 @@ export default function TrainingDetailPage({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push('/capacitacion')}
+            onClick={() => router.push('/adm/capacitacion')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Volver al listado

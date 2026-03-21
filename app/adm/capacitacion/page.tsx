@@ -299,7 +299,7 @@ export default function CapacitacionPage() {
               </p>
               <Button onClick={() => {
                 setLoadingCreate(true)
-                router.push("/capacitacion/create")
+                router.push("/adm/capacitacion/create")
               }}>
                 <BookOpen className="mr-2 h-4 w-4" />
                 Crear capacitación
@@ -329,7 +329,7 @@ export default function CapacitacionPage() {
             </Button>
             <Button onClick={() => {
               setLoadingCreate(true)
-              router.push("/capacitacion/create")
+              router.push("/adm/capacitacion/create")
             }}>
               <BookOpen className="mr-2 h-4 w-4" />
               Crear capacitación
@@ -438,7 +438,7 @@ export default function CapacitacionPage() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => {
                         setLoadingDetail(true)
-                        router.push(`/capacitacion/${training.id}`)
+                        router.push(`/adm/capacitacion/${training.id}`)
                       }}
                     >
                       <TableCell className="font-mono text-sm">

@@ -32,13 +32,13 @@ interface AppTopbarProps {
 }
 
 const routeLabels: Record<string, string> = {
-  "/home": "Inicio",
-  "/aspirantes": "Aspirantes",
-  "/drivers": "Drivers",
-  "/capacitacion": "Capacitación",
-  "/comunicacion": "Comunicación",
-  "/contratos": "Contratos",
-  "/pagos": "Pagos",
+  "/adm/home": "Inicio",
+  "/adm/aspirantes": "Aspirantes",
+  "/adm/drivers": "Drivers",
+  "/adm/capacitacion": "Capacitación",
+  "/adm/comunicacion": "Comunicación",
+  "/adm/contratos": "Contratos",
+  "/adm/pagos": "Pagos",
 }
 
 export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
@@ -49,7 +49,7 @@ export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
     if (breadcrumbs) return breadcrumbs
     
     const segments = pathname.split("/").filter(Boolean)
-    const crumbs: { label: string; href?: string }[] = [{ label: "Inicio", href: "/home" }]
+    const crumbs: { label: string; href?: string }[] = [{ label: "Inicio", href: "/adm/home" }]
     
     segments.forEach((segment, index) => {
       const path = `/${segments.slice(0, index + 1).join("/")}`

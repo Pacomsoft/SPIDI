@@ -26,7 +26,7 @@ export default function DeniedPage() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center">
-          <Button onClick={() => router.push("/home")} className="w-full" size="lg">
+          <Button onClick={() => router.push("/adm/home")} className="w-full" size="lg">
             Volver al Inicio
           </Button>
         </CardFooter>

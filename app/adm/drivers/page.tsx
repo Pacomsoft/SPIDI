@@ -818,7 +818,7 @@ export default function DriversPage() {
                           className="cursor-pointer hover:bg-muted"
                           onClick={() => {
                             setLoadingDetail(true)
-                            router.push(`/drivers/${driver.id}`)
+                            router.push(`/adm/drivers/${driver.id}`)
                           }}
                         >
                           <TableCell className="font-medium">

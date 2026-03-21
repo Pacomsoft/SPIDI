@@ -63,3 +63,19 @@ export function getAllowedModules(role: Role): ModuleKey[] {
 export function isAdminTI(role: Role): boolean {
   return role === "ADMIN_TI"
 }
+
+/**
+ * Obtiene la página principal (home) según el rol del usuario
+ * @param role - Rol del usuario
+ * @returns Ruta de la página principal
+ */
+export function getHomePageForRole(role: Role): string {
+  const homePages: Record<Role, string> = {
+    ADMIN_TI: "/adm/home",
+    ADMIN_OPERACIONES: "/adm/home",
+    FINANZAS: "/adm/pagos",
+    RH: "/adm/capacitacion",
+  }
+  
+  return homePages[role]
+}

@@ -525,7 +525,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
     return (
       <RoleGuard moduleKey={moduleKey}>
         <div className="space-y-6">
-          <Button variant="ghost" onClick={() => router.push('/complaints')}>
+          <Button variant="ghost" onClick={() => router.push('/adm/complaints')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Volver al listado
           </Button>
@@ -554,7 +554,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbLink href="/complaints">Quejas y Aclaraciones</BreadcrumbLink>
+              <BreadcrumbLink href="/adm/complaints">Quejas y Aclaraciones</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -567,7 +567,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
         <Button
           variant="outline"
           size="icon"
-          onClick={() => router.push('/complaints')}
+          onClick={() => router.push('/adm/complaints')}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
