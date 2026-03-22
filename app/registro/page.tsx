@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import "../landing.css"
+import "../landing.css"  
 import "./registro.css"
 
 // Ubicaciones HEB / Mi Tienda
@@ -35,8 +35,10 @@ const yearValidator = (val: string) => {
 }
 
 const FIELDS: FieldConfig[] = [
-  { id: 'nombre', required: true, min: 2, max: 255, msg: 'Ingresa tu nombre' },
-  { id: 'apellidos', required: true, min: 2, max: 255, msg: 'Ingresa tus apellidos' },
+  { id: 'firstName', required: true, min: 2, max: 100, msg: 'Ingresa tu primer nombre' },
+  { id: 'middleName', required: false, min: 0, max: 100, msg: 'Ingresa tu segundo nombre' },
+  { id: 'paternalSurname', required: true, min: 2, max: 100, msg: 'Ingresa tu apellido paterno' },
+  { id: 'maternalSurname', required: false, min: 0, max: 100, msg: 'Ingresa tu apellido materno' },
   { id: 'telefono', required: true, pattern: /^\d{10}$/, msg: 'Ingresa 10 dígitos' },
   { id: 'email', required: true, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, max: 255, msg: 'Ingresa un correo válido' },
   { id: 'marca', required: true, min: 2, max: 30, msg: 'Ingresa la marca del vehículo' },
@@ -49,11 +51,34 @@ const FIELDS: FieldConfig[] = [
   { id: 'comoTeEnteraste', required: true, type: 'select', msg: 'Selecciona una opción' },
 ]
 
-export default function RegistroPage() {
+type FormData = {
+  firstName: string
+  middleName: string
+  paternalSurname: string
+  maternalSurname: string
+  telefono: string
+  email: string
+  marca: string
+  modelo: string
+  anio: string
+  placas: string
+  color: string
+  estado: string
+  ciudad: string
+  comoTeEnteraste: string
+}
+
+export default function RegistroWizardPage() {
   const router = useRouter()
-  const [formData, setFormData] = useState({
-    nombre: "",
-    apellidos: "",
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [solicitudNum, setSolicitudNum] = useState('')
+  
+  const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    middleName: "",
+    paternalSurname: "",
+    maternalSurname: "",
     telefono: "",
     email: "",
     marca: "",
@@ -69,13 +94,111 @@ export default function RegistroPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [validFields, setValidFields] = useState<Set<string>>(new Set())
   const [ciudades, setCiudades] = useState<string[]>([])
+  
+  // OTP States
+  const [phoneOtp, setPhoneOtp] = useState(['', '', '', '', '', ''])
+  const [emailOtp, setEmailOtp] = useState(['', '', '', '', '', ''])
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false)
+  const [emailOtpSent, setEmailOtpSent] = useState(false)
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [emailVerified, setEmailVerified] = useState(false)
+  const [phoneOtpError, setPhoneOtpError] = useState('')
+  const [emailOtpError, setEmailOtpError] = useState('')
+  const [phoneOtpTimer, setPhoneOtpTimer] = useState(600) // 10 min
+  const [emailOtpTimer, setEmailOtpTimer] = useState(600)
+  const [phoneResendCount, setPhoneResendCount] = useState(0)
+  const [emailResendCount, setEmailResendCount] = useState(0)
+  
+  const phoneOtpRefs = useRef<(HTMLInputElement | null)[]>([])
+  const emailOtpRefs = useRef<(HTMLInputElement | null)[]>([])
+
+  // Cargar datos desde localStorage
+  useEffect(() => {
+    const cachedData = localStorage.getItem('spidi_registro_cache')
+    const cachedVerification = localStorage.getItem('spidi_verification_state')
+    
+    if (cachedData) {
+      try {
+        const { data, timestamp } = JSON.parse(cachedData)
+        const now = Date.now()
+        const twentyFourHours = 24 * 60 * 60 * 1000
+        
+        if (now - timestamp < twentyFourHours) {
+          // Hacer merge con valores por defecto para evitar undefined
+          // Ensuring all values are strings, never undefined
+          setFormData({
+            firstName: String(data.firstName ?? ""),
+            middleName: String(data.middleName ?? ""),
+            paternalSurname: String(data.paternalSurname ?? ""),
+            maternalSurname: String(data.maternalSurname ?? ""),
+            telefono: String(data.telefono ?? ""),
+            email: String(data.email ?? ""),
+            marca: String(data.marca ?? ""),
+            modelo: String(data.modelo ?? ""),
+            anio: String(data.anio ?? ""),
+            placas: String(data.placas ?? ""),
+            color: String(data.color ?? ""),
+            estado: String(data.estado ?? ""),
+            ciudad: String(data.ciudad ?? ""),
+            comoTeEnteraste: String(data.comoTeEnteraste ?? "")
+          })
+          if (data.estado) {
+            setCiudades(CIUDADES_POR_ESTADO[data.estado] || [])
+          }
+          
+          // Restaurar estado de verificación solo si los datos coinciden
+          if (cachedVerification) {
+            try {
+              const verificationState = JSON.parse(cachedVerification)
+              if (verificationState.telefono === data.telefono && verificationState.phoneVerified) {
+                setPhoneVerified(true)
+                setPhoneOtpSent(true)
+              }
+              if (verificationState.email === data.email && verificationState.emailVerified) {
+                setEmailVerified(true)
+                setEmailOtpSent(true)
+              }
+            } catch (e) {
+              console.error('Error loading verification state:', e)
+            }
+          }
+        } else {
+          localStorage.removeItem('spidi_registro_cache')
+          localStorage.removeItem('spidi_verification_state')
+        }
+      } catch (e) {
+        console.error('Error loading cached data:', e)
+      }
+    }
+  }, [])
+
+  // Timer countdown para phone OTP
+  useEffect(() => {
+    if (phoneOtpSent && phoneOtpTimer > 0 && !phoneVerified) {
+      const interval = setInterval(() => {
+        setPhoneOtpTimer(prev => prev - 1)
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [phoneOtpSent, phoneOtpTimer, phoneVerified])
+
+  // Timer countdown para email OTP
+  useEffect(() => {
+    if (emailOtpSent && emailOtpTimer > 0 && !emailVerified) {
+      const interval = setInterval(() => {
+        setEmailOtpTimer(prev => prev - 1)
+      }, 1000)
+      return () => clearInterval(interval)
+    }
+  }, [emailOtpSent, emailOtpTimer, emailVerified])
 
   const validateField = (id: string, value?: string) => {
     const cfg = FIELDS.find(f => f.id === id)
     if (!cfg) return true
 
-    let val = value !== undefined ? value : formData[id as keyof typeof formData]
-    val = val.trim()
+    let val = value !== undefined ? value : formData[id as keyof FormData]
+    // Ensuring val is always a string, never undefined or null
+    val = String(val ?? "").trim()
 
     let err: string | null = null
 
@@ -114,16 +237,50 @@ export default function RegistroPage() {
 
   const handleInputChange = (id: string, value: string) => {
     const cfg = FIELDS.find(f => f.id === id)
-    let newValue = value
+    let newValue = value ?? ""
 
-    // Apply transformation if exists
     if (cfg?.transform) {
       newValue = cfg.transform(newValue)
     }
 
-    setFormData(prev => ({ ...prev, [id]: newValue }))
+    // Detectar cambio en teléfono - invalidar verificación si ya estaba verificado
+    if (id === 'telefono' && formData.telefono !== newValue) {
+      if (phoneVerified || phoneOtpSent) {
+        setPhoneVerified(false)
+        setPhoneOtpSent(false)
+        setPhoneOtp(['', '', '', '', '', ''])
+        setPhoneOtpError('')
+        setPhoneOtpTimer(600)
+        setPhoneResendCount(0)
+        
+        // Limpiar estado de verificación en localStorage
+        localStorage.removeItem('spidi_verification_state')
+      }
+    }
 
-    // Validate if field already has error
+    // Detectar cambio en email - invalidar verificación si ya estaba verificado
+    if (id === 'email' && formData.email !== newValue) {
+      if (emailVerified || emailOtpSent) {
+        setEmailVerified(false)
+        setEmailOtpSent(false)
+        setEmailOtp(['', '', '', '', '', ''])
+        setEmailOtpError('')
+        setEmailOtpTimer(600)
+        setEmailResendCount(0)
+        
+        // Limpiar estado de verificación en localStorage
+        localStorage.removeItem('spidi_verification_state')
+      }
+    }
+
+    const updatedData = { ...formData, [id]: newValue ?? "" }
+    setFormData(updatedData)
+
+    localStorage.setItem('spidi_registro_cache', JSON.stringify({
+      data: updatedData,
+      timestamp: Date.now()
+    }))
+
     if (errors[id]) {
       validateField(id, newValue)
     }
@@ -134,10 +291,16 @@ export default function RegistroPage() {
   }
 
   const handleEstadoChange = (estado: string) => {
-    setFormData(prev => ({ ...prev, estado, ciudad: "" }))
-    setCiudades(CIUDADES_POR_ESTADO[estado] || [])
+    const safeEstado = estado ?? ""
+    const updatedData = { ...formData, estado: safeEstado, ciudad: "" }
+    setFormData(updatedData)
+    setCiudades(CIUDADES_POR_ESTADO[safeEstado] || [])
     
-    // Clear errors for estado and ciudad
+    localStorage.setItem('spidi_registro_cache', JSON.stringify({
+      data: updatedData,
+      timestamp: Date.now()
+    }))
+    
     setErrors(prev => {
       const newErrors = { ...prev }
       delete newErrors.estado
@@ -148,7 +311,7 @@ export default function RegistroPage() {
     validateField('estado', estado)
   }
 
-  const validateAll = () => {
+  const validateAllStep1 = () => {
     const newErrors: Record<string, string> = {}
     let firstErrorField: string | null = null
 
@@ -158,26 +321,217 @@ export default function RegistroPage() {
       }
     })
 
-    return firstErrorField
+    return firstErrorField === null
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  // OTP Handlers
+  const handlePhoneOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return
     
-    const firstError = validateAll()
+    const newOtp = [...phoneOtp]
+    newOtp[index] = value.slice(-1)
+    setPhoneOtp(newOtp)
+    setPhoneOtpError('')
     
-    if (!firstError) {
-      // Guardar datos en sessionStorage
-      sessionStorage.setItem('spidi_step1', JSON.stringify(formData))
-      // Navegar a verificación
-      router.push('/registro/verificar')
-    } else {
-      // Scroll to first error
-      const el = document.getElementById(firstError)
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        el.focus()
+    if (value && index < 5) {
+      phoneOtpRefs.current[index + 1]?.focus()
+    }
+
+    if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 6) {
+      verifyPhoneOtp(newOtp.join(''))
+    }
+  }
+
+  const handleEmailOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return
+    
+    const newOtp = [...emailOtp]
+    newOtp[index] = value.slice(-1)
+    setEmailOtp(newOtp)
+    setEmailOtpError('')
+    
+    if (value && index < 5) {
+      emailOtpRefs.current[index + 1]?.focus()
+    }
+
+    if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 6) {
+      verifyEmailOtp(newOtp.join(''))
+    }
+  }
+
+  const handlePhoneOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !phoneOtp[index] && index > 0) {
+      phoneOtpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleEmailOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
+    if (e.key === 'Backspace' && !emailOtp[index] && index > 0) {
+      emailOtpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const sendPhoneOtp = async () => {
+    // Simular envío de OTP
+    setPhoneOtpSent(true)
+    setPhoneOtpTimer(600)
+    console.log('OTP enviado a:', formData.telefono)
+    // TODO: Implementar llamada real a API
+  }
+
+  const sendEmailOtp = async () => {
+    // Simular envío de OTP
+    setEmailOtpSent(true)
+    setEmailOtpTimer(600)
+    console.log('OTP enviado a:', formData.email)
+    // TODO: Implementar llamada real a API
+  }
+
+  const verifyPhoneOtp = async (code: string) => {
+    // Simular verificación (en producción, validar con backend)
+    setTimeout(() => {
+      if (code === '123456') {
+        setPhoneVerified(true)
+        setPhoneOtpError('')
+        
+        // Guardar estado de verificación en localStorage
+        const verificationState = {
+          telefono: formData.telefono,
+          email: formData.email,
+          phoneVerified: true,
+          emailVerified: emailVerified
+        }
+        localStorage.setItem('spidi_verification_state', JSON.stringify(verificationState))
+      } else {
+        setPhoneOtpError('Código incorrecto. Intenta nuevamente.')
+        setPhoneOtp(['', '', '', '', '', ''])
+        phoneOtpRefs.current[0]?.focus()
       }
+    }, 500)
+  }
+
+  const verifyEmailOtp = async (code: string) => {
+    // Simular verificación (en producción, validar con backend)
+    setTimeout(() => {
+      if (code === '123456') {
+        setEmailVerified(true)
+        setEmailOtpError('')
+        
+        // Guardar estado de verificación en localStorage
+        const verificationState = {
+          telefono: formData.telefono,
+          email: formData.email,
+          phoneVerified: phoneVerified,
+          emailVerified: true
+        }
+        localStorage.setItem('spidi_verification_state', JSON.stringify(verificationState))
+      } else {
+        setEmailOtpError('Código incorrecto. Intenta nuevamente.')
+        setEmailOtp(['', '', '', '', '', ''])
+        emailOtpRefs.current[0]?.focus()
+      }
+    }, 500)
+  }
+
+  const resendPhoneOtp = () => {
+    if (phoneResendCount >= 1) {
+      alert('Ya usaste tu reenvío. Contacta a soporte si necesitas ayuda.')
+      return
+    }
+    setPhoneResendCount(prev => prev + 1)
+    sendPhoneOtp()
+  }
+
+  const resendEmailOtp = () => {
+    if (emailResendCount >= 1) {
+      alert('Ya usaste tu reenvío. Contacta a soporte si necesitas ayuda.')
+      return
+    }
+    setEmailResendCount(prev => prev + 1)
+    sendEmailOtp()
+  }
+
+  const handleNext = () => {
+    if (currentStep === 1) {
+      if (validateAllStep1()) {
+        setCurrentStep(2)
+      } else {
+        const firstError = FIELDS.find(f => !validateField(f.id))
+        if (firstError) {
+          const el = document.getElementById(firstError.id)
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            el.focus()
+          }
+        }
+      }
+    } else if (currentStep === 2) {
+      if (phoneVerified) {
+        setCurrentStep(3)
+      }
+    } else if (currentStep === 3) {
+      if (emailVerified) {
+        setCurrentStep(4)
+      }
+    } else if (currentStep === 4) {
+      handleSubmit()
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true)
+    
+    // Simular envío
+    setTimeout(() => {
+      const num = Math.floor(Math.random() * 9000 + 1000)
+      setSolicitudNum(`SPD-2026-${String(num).padStart(6, '0')}`)
+      setCurrentStep(5) // Ir a confirmación
+      setIsSubmitting(false)
+      
+      // Limpiar cache y estado de verificación
+      localStorage.removeItem('spidi_registro_cache')
+      localStorage.removeItem('spidi_verification_state')
+    }, 2000)
+    
+    // TODO: Implementar llamada real a API
+    console.log('Enviando formulario:', formData)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const getStepTitle = () => {
+    switch(currentStep) {
+      case 1: return 'Cuéntanos sobre ti'
+      case 2: return 'Verifica tu teléfono'
+      case 3: return 'Verifica tu email'
+      case 4: return 'Confirma tu información'
+      case 5: return '¡Registro exitoso!'
+      default: return ''
+    }
+  }
+
+  const getStepDescription = () => {
+    switch(currentStep) {
+      case 1: return 'Solo toma 2 minutos. Completa tus datos y verificaremos tu correo y teléfono.'
+      case 2: return phoneOtpSent 
+        ? `Se envió un código de 6 dígitos por SMS al <strong>${formData.telefono}</strong>`
+        : `Se enviará un código de 6 dígitos por SMS al <strong>${formData.telefono}</strong>`
+      case 3: return emailOtpSent
+        ? `Se envió un código de 6 dígitos al correo <strong>${formData.email}</strong>`
+        : `Se enviará un código de 6 dígitos al correo <strong>${formData.email}</strong>`
+      case 4: return 'Revisa tu información antes de enviar'
+      case 5: return `Tu número de solicitud es: <strong>${solicitudNum}</strong>`
+      default: return ''
     }
   }
 
@@ -201,258 +555,557 @@ export default function RegistroPage() {
       {/* Form Container */}
       <div className="reg-container">
         <div className="reg-card">
+          {/* Progress Steps */}
+          {currentStep < 5 && (
+            <div className="verify-steps">
+              <div className={`verify-step ${currentStep === 1 ? 'active' : currentStep > 1 ? 'done' : ''}`}>
+                <span className="icon">{currentStep > 1 ? 'check' : 'assignment'}</span>
+                <span>Datos</span>
+              </div>
+              <span className="verify-step-divider">→</span>
+              <div className={`verify-step ${currentStep === 2 ? 'active' : currentStep > 2 ? 'done' : ''}`}>
+                <span className="icon">{currentStep > 2 ? 'check' : 'phone_iphone'}</span>
+                <span>SMS</span>
+              </div>
+              <span className="verify-step-divider">→</span>
+              <div className={`verify-step ${currentStep === 3 ? 'active' : currentStep > 3 ? 'done' : ''}`}>
+                <span className="icon">{currentStep > 3 ? 'check' : 'email'}</span>
+                <span>Email</span>
+              </div>
+              <span className="verify-step-divider">→</span>
+              <div className={`verify-step ${currentStep === 4 ? 'active' : ''}`}>
+                <span className="icon">send</span>
+                <span>Enviar</span>
+              </div>
+            </div>
+          )}
+
           {/* Card Header */}
           <div className="reg-card__header">
-            <div className="reg-card__icon"><span className="icon">person_add</span></div>
-            <h2 className="reg-card__title">Cuéntanos sobre ti</h2>
-            <p className="reg-card__desc">Solo toma 2 minutos. Completa tus datos y verificaremos tu correo y teléfono.</p>
-            <div className="reg-card__benefits">
-              <span className="reg-card__benefit"><span className="icon">check_circle</span> 100% en línea</span>
-              <span className="reg-card__benefit"><span className="icon">check_circle</span> Sin costo</span>
-              <span className="reg-card__benefit"><span className="icon">check_circle</span> Respuesta en 24-48h</span>
+            <div className="reg-card__icon">
+              <span className="icon">
+                {currentStep === 1 && 'person_add'}
+                {currentStep === 2 && 'phone_iphone'}
+                {currentStep === 3 && 'email'}
+                {currentStep === 4 && 'fact_check'}
+                {currentStep === 5 && 'check_circle'}
+              </span>
             </div>
+            <h2 className="reg-card__title">{getStepTitle()}</h2>
+            <p 
+              className="reg-card__desc" 
+              dangerouslySetInnerHTML={{ __html: getStepDescription() }}
+            />
+            {currentStep === 1 && (
+              <div className="reg-card__benefits">
+                <span className="reg-card__benefit"><span className="icon">check_circle</span> 100% en línea</span>
+                <span className="reg-card__benefit"><span className="icon">check_circle</span> Sin costo</span>
+                <span className="reg-card__benefit"><span className="icon">check_circle</span> Respuesta en 24-48h</span>
+              </div>
+            )}
           </div>
 
-          {/* Form */}
-          <form id="reg-form" onSubmit={handleSubmit} noValidate>
-            {/* Datos personales */}
-            <div className="form-section">
-              <h3 className="form-section__title">Datos personales</h3>
-              <div className="form-group__row">
-                <div className={`form-group ${errors.nombre ? 'form-group--error' : ''} ${validFields.has('nombre') && !errors.nombre ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="nombre">Nombre(s)<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="nombre" 
-                    placeholder="Ej. Juan Carlos" 
-                    maxLength={255}
-                    autoComplete="given-name"
-                    value={formData.nombre}
-                    onChange={(e) => handleInputChange('nombre', e.target.value)}
-                    onBlur={() => handleBlur('nombre')}
-                  />
-                  {errors.nombre && <div className="form-group__error"><span className="icon">error</span><span>{errors.nombre}</span></div>}
+          {/* Step Content */}
+          <div className="wizard-content">
+            {/* STEP 1: Datos Básicos */}
+            {currentStep === 1 && (
+              <form onSubmit={(e) => { e.preventDefault(); handleNext(); }} noValidate>
+                {/* Datos personales */}
+                <div className="form-section">
+                  <h3 className="form-section__title">Datos personales</h3>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.firstName ? 'form-group--error' : ''} ${validFields.has('firstName') && !errors.firstName ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="firstName">Primer nombre<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="firstName" 
+                        placeholder="Ej. Juan" 
+                        maxLength={100}
+                        autoComplete="given-name"
+                        value={formData.firstName}
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        onBlur={() => handleBlur('firstName')}
+                      />
+                      {errors.firstName && <div className="form-group__error"><span className="icon">error</span><span>{errors.firstName}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.middleName ? 'form-group--error' : ''} ${validFields.has('middleName') && !errors.middleName ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="middleName">Segundo nombre</label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="middleName" 
+                        placeholder="Ej. Carlos (opcional)" 
+                        maxLength={100}
+                        autoComplete="additional-name"
+                        value={formData.middleName}
+                        onChange={(e) => handleInputChange('middleName', e.target.value)}
+                        onBlur={() => handleBlur('middleName')}
+                      />
+                      {errors.middleName && <div className="form-group__error"><span className="icon">error</span><span>{errors.middleName}</span></div>}
+                    </div>
+                  </div>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.paternalSurname ? 'form-group--error' : ''} ${validFields.has('paternalSurname') && !errors.paternalSurname ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="paternalSurname">Apellido paterno<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="paternalSurname" 
+                        placeholder="Ej. García" 
+                        maxLength={100}
+                        autoComplete="family-name"
+                        value={formData.paternalSurname}
+                        onChange={(e) => handleInputChange('paternalSurname', e.target.value)}
+                        onBlur={() => handleBlur('paternalSurname')}
+                      />
+                      {errors.paternalSurname && <div className="form-group__error"><span className="icon">error</span><span>{errors.paternalSurname}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.maternalSurname ? 'form-group--error' : ''} ${validFields.has('maternalSurname') && !errors.maternalSurname ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="maternalSurname">Apellido materno</label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="maternalSurname" 
+                        placeholder="Ej. López (opcional)" 
+                        maxLength={100}
+                        autoComplete="additional-name"
+                        value={formData.maternalSurname}
+                        onChange={(e) => handleInputChange('maternalSurname', e.target.value)}
+                        onBlur={() => handleBlur('maternalSurname')}
+                      />
+                      {errors.maternalSurname && <div className="form-group__error"><span className="icon">error</span><span>{errors.maternalSurname}</span></div>}
+                    </div>
+                  </div>
                 </div>
-                <div className={`form-group ${errors.apellidos ? 'form-group--error' : ''} ${validFields.has('apellidos') && !errors.apellidos ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="apellidos">Apellidos<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="apellidos" 
-                    placeholder="Ej. García López" 
-                    maxLength={255}
-                    autoComplete="family-name"
-                    value={formData.apellidos}
-                    onChange={(e) => handleInputChange('apellidos', e.target.value)}
-                    onBlur={() => handleBlur('apellidos')}
-                  />
-                  {errors.apellidos && <div className="form-group__error"><span className="icon">error</span><span>{errors.apellidos}</span></div>}
-                </div>
-              </div>
-            </div>
 
-            {/* Contacto */}
-            <div className="form-section">
-              <h3 className="form-section__title">Contacto</h3>
-              <div className="form-group__row">
-                <div className={`form-group ${errors.telefono ? 'form-group--error' : ''} ${validFields.has('telefono') && !errors.telefono ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="telefono">Teléfono celular<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="tel" 
-                    id="telefono" 
-                    placeholder="10 dígitos" 
-                    maxLength={10}
-                    autoComplete="tel"
-                    inputMode="numeric"
-                    value={formData.telefono}
-                    onChange={(e) => handleInputChange('telefono', e.target.value.replace(/\D/g, ''))}
-                    onBlur={() => handleBlur('telefono')}
-                  />
-                  {errors.telefono && <div className="form-group__error"><span className="icon">error</span><span>{errors.telefono}</span></div>}
+                {/* Contacto */}
+                <div className="form-section">
+                  <h3 className="form-section__title">Contacto</h3>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.telefono ? 'form-group--error' : ''} ${validFields.has('telefono') && !errors.telefono ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="telefono">Teléfono celular<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="tel" 
+                        id="telefono" 
+                        placeholder="10 dígitos" 
+                        maxLength={10}
+                        autoComplete="tel"
+                        inputMode="numeric"
+                        value={formData.telefono}
+                        onChange={(e) => handleInputChange('telefono', e.target.value.replace(/\D/g, ''))}
+                        onBlur={() => handleBlur('telefono')}
+                      />
+                      {errors.telefono && <div className="form-group__error"><span className="icon">error</span><span>{errors.telefono}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.email ? 'form-group--error' : ''} ${validFields.has('email') && !errors.email ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="email">Correo electrónico<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="email" 
+                        id="email" 
+                        placeholder="tu@correo.com" 
+                        maxLength={255}
+                        autoComplete="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        onBlur={() => handleBlur('email')}
+                      />
+                      {errors.email && <div className="form-group__error"><span className="icon">error</span><span>{errors.email}</span></div>}
+                    </div>
+                  </div>
                 </div>
-                <div className={`form-group ${errors.email ? 'form-group--error' : ''} ${validFields.has('email') && !errors.email ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="email">Correo electrónico<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="email" 
-                    id="email" 
-                    placeholder="tu@correo.com" 
-                    maxLength={255}
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    onBlur={() => handleBlur('email')}
-                  />
-                  {errors.email && <div className="form-group__error"><span className="icon">error</span><span>{errors.email}</span></div>}
-                </div>
-              </div>
-            </div>
 
-            {/* Datos del vehículo */}
-            <div className="form-section">
-              <h3 className="form-section__title">Datos del vehículo</h3>
-              <div className="form-group__row">
-                <div className={`form-group ${errors.marca ? 'form-group--error' : ''} ${validFields.has('marca') && !errors.marca ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="marca">Marca<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="marca" 
-                    placeholder="Ej. Toyota" 
-                    maxLength={30}
-                    value={formData.marca}
-                    onChange={(e) => handleInputChange('marca', e.target.value)}
-                    onBlur={() => handleBlur('marca')}
-                  />
-                  {errors.marca && <div className="form-group__error"><span className="icon">error</span><span>{errors.marca}</span></div>}
+                {/* Datos del vehículo */}
+                <div className="form-section">
+                  <h3 className="form-section__title">Datos del vehículo</h3>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.marca ? 'form-group--error' : ''} ${validFields.has('marca') && !errors.marca ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="marca">Marca<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="marca" 
+                        placeholder="Ej. Toyota" 
+                        maxLength={30}
+                        value={formData.marca}
+                        onChange={(e) => handleInputChange('marca', e.target.value)}
+                        onBlur={() => handleBlur('marca')}
+                      />
+                      {errors.marca && <div className="form-group__error"><span className="icon">error</span><span>{errors.marca}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.modelo ? 'form-group--error' : ''} ${validFields.has('modelo') && !errors.modelo ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="modelo">Modelo<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="modelo" 
+                        placeholder="Ej. Corolla" 
+                        maxLength={50}
+                        value={formData.modelo}
+                        onChange={(e) => handleInputChange('modelo', e.target.value)}
+                        onBlur={() => handleBlur('modelo')}
+                      />
+                      {errors.modelo && <div className="form-group__error"><span className="icon">error</span><span>{errors.modelo}</span></div>}
+                    </div>
+                  </div>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.anio ? 'form-group--error' : ''} ${validFields.has('anio') && !errors.anio ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="anio">Año<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="anio" 
+                        placeholder="Ej. 2020" 
+                        maxLength={4}
+                        inputMode="numeric"
+                        value={formData.anio}
+                        onChange={(e) => handleInputChange('anio', e.target.value.replace(/\D/g, ''))}
+                        onBlur={() => handleBlur('anio')}
+                      />
+                      {errors.anio && <div className="form-group__error"><span className="icon">error</span><span>{errors.anio}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.placas ? 'form-group--error' : ''} ${validFields.has('placas') && !errors.placas ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="placas">Placas<span className="req">*</span></label>
+                      <input 
+                        className="form-input" 
+                        type="text" 
+                        id="placas" 
+                        placeholder="Ej. ABC1234" 
+                        maxLength={10}
+                        style={{textTransform:'uppercase'}}
+                        value={formData.placas}
+                        onChange={(e) => handleInputChange('placas', e.target.value)}
+                        onBlur={() => handleBlur('placas')}
+                      />
+                      {errors.placas && <div className="form-group__error"><span className="icon">error</span><span>{errors.placas}</span></div>}
+                    </div>
+                  </div>
+                  <div className={`form-group ${errors.color ? 'form-group--error' : ''} ${validFields.has('color') && !errors.color ? 'form-group--success' : ''}`}>
+                    <label className="form-group__label" htmlFor="color">Color<span className="req">*</span></label>
+                    <input 
+                      className="form-input" 
+                      type="text" 
+                      id="color" 
+                      placeholder="Ej. Blanco" 
+                      maxLength={30}
+                      value={formData.color}
+                      onChange={(e) => handleInputChange('color', e.target.value)}
+                      onBlur={() => handleBlur('color')}
+                    />
+                    {errors.color && <div className="form-group__error"><span className="icon">error</span><span>{errors.color}</span></div>}
+                  </div>
                 </div>
-                <div className={`form-group ${errors.modelo ? 'form-group--error' : ''} ${validFields.has('modelo') && !errors.modelo ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="modelo">Modelo<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="modelo" 
-                    placeholder="Ej. Corolla" 
-                    maxLength={50}
-                    value={formData.modelo}
-                    onChange={(e) => handleInputChange('modelo', e.target.value)}
-                    onBlur={() => handleBlur('modelo')}
-                  />
-                  {errors.modelo && <div className="form-group__error"><span className="icon">error</span><span>{errors.modelo}</span></div>}
-                </div>
-              </div>
-              <div className="form-group__row">
-                <div className={`form-group ${errors.anio ? 'form-group--error' : ''} ${validFields.has('anio') && !errors.anio ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="anio">Año<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="anio" 
-                    placeholder="Ej. 2020" 
-                    maxLength={4}
-                    inputMode="numeric"
-                    value={formData.anio}
-                    onChange={(e) => handleInputChange('anio', e.target.value.replace(/\D/g, ''))}
-                    onBlur={() => handleBlur('anio')}
-                  />
-                  {errors.anio && <div className="form-group__error"><span className="icon">error</span><span>{errors.anio}</span></div>}
-                </div>
-                <div className={`form-group ${errors.placas ? 'form-group--error' : ''} ${validFields.has('placas') && !errors.placas ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="placas">Placas<span className="req">*</span></label>
-                  <input 
-                    className="form-input" 
-                    type="text" 
-                    id="placas" 
-                    placeholder="Ej. ABC1234" 
-                    maxLength={10}
-                    style={{textTransform:'uppercase'}}
-                    value={formData.placas}
-                    onChange={(e) => handleInputChange('placas', e.target.value)}
-                    onBlur={() => handleBlur('placas')}
-                  />
-                  {errors.placas && <div className="form-group__error"><span className="icon">error</span><span>{errors.placas}</span></div>}
-                </div>
-              </div>
-              <div className={`form-group ${errors.color ? 'form-group--error' : ''} ${validFields.has('color') && !errors.color ? 'form-group--success' : ''}`}>
-                <label className="form-group__label" htmlFor="color">Color<span className="req">*</span></label>
-                <input 
-                  className="form-input" 
-                  type="text" 
-                  id="color" 
-                  placeholder="Ej. Blanco" 
-                  maxLength={30}
-                  value={formData.color}
-                  onChange={(e) => handleInputChange('color', e.target.value)}
-                  onBlur={() => handleBlur('color')}
-                />
-                {errors.color && <div className="form-group__error"><span className="icon">error</span><span>{errors.color}</span></div>}
-              </div>
-            </div>
 
-            {/* Ubicación */}
-            <div className="form-section">
-              <h3 className="form-section__title">Ubicación</h3>
-              <div className="form-group__row">
-                <div className={`form-group ${errors.estado ? 'form-group--error' : ''} ${validFields.has('estado') && !errors.estado ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="estado">Estado<span className="req">*</span></label>
-                  <select 
-                    className="form-select" 
-                    id="estado"
-                    value={formData.estado}
-                    onChange={(e) => handleEstadoChange(e.target.value)}
+                {/* Ubicación */}
+                <div className="form-section">
+                  <h3 className="form-section__title">Ubicación</h3>
+                  <div className="form-group__row">
+                    <div className={`form-group ${errors.estado ? 'form-group--error' : ''} ${validFields.has('estado') && !errors.estado ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="estado">Estado<span className="req">*</span></label>
+                      <select 
+                        className="form-select" 
+                        id="estado"
+                        value={formData.estado}
+                        onChange={(e) => handleEstadoChange(e.target.value)}
+                      >
+                        <option value="">Selecciona un estado</option>
+                        <option>Aguascalientes</option>
+                        <option>Coahuila</option>
+                        <option>Guanajuato</option>
+                        <option>Nuevo León</option>
+                        <option>Querétaro</option>
+                        <option>San Luis Potosí</option>
+                        <option>Tamaulipas</option>
+                      </select>
+                      {errors.estado && <div className="form-group__error"><span className="icon">error</span><span>{errors.estado}</span></div>}
+                    </div>
+                    <div className={`form-group ${errors.ciudad ? 'form-group--error' : ''} ${validFields.has('ciudad') && !errors.ciudad ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="ciudad">Ciudad / Municipio<span className="req">*</span></label>
+                      <select 
+                        className="form-select" 
+                        id="ciudad"
+                        value={formData.ciudad}
+                        onChange={(e) => {
+                          handleInputChange('ciudad', e.target.value)
+                          validateField('ciudad', e.target.value)
+                        }}
+                        disabled={!formData.estado}
+                      >
+                        <option value="">{formData.estado ? 'Selecciona una ciudad' : 'Primero selecciona un estado'}</option>
+                        {ciudades.map(ciudad => (
+                          <option key={ciudad}>{ciudad}</option>
+                        ))}
+                      </select>
+                      {errors.ciudad && <div className="form-group__error"><span className="icon">error</span><span>{errors.ciudad}</span></div>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Información adicional */}
+                <div className="form-section">
+                  <h3 className="form-section__title">Información adicional</h3>
+                  <div className={`form-group ${errors.comoTeEnteraste ? 'form-group--error' : ''} ${validFields.has('comoTeEnteraste') && !errors.comoTeEnteraste ? 'form-group--success' : ''}`}>
+                    <label className="form-group__label" htmlFor="comoTeEnteraste">¿Cómo te enteraste de SPIDI?<span className="req">*</span></label>
+                    <select 
+                      className="form-select" 
+                      id="comoTeEnteraste"
+                      value={formData.comoTeEnteraste}
+                      onChange={(e) => {
+                        handleInputChange('comoTeEnteraste', e.target.value)
+                        validateField('comoTeEnteraste', e.target.value)
+                      }}
+                    >
+                      <option value="">Selecciona una opción</option>
+                      <option>Redes sociales</option>
+                      <option>Recomendación de amigo o familiar</option>
+                      <option>Búsqueda en internet</option>
+                      <option>Volante o cartel</option>
+                      <option>Otro</option>
+                    </select>
+                    {errors.comoTeEnteraste && <div className="form-group__error"><span className="icon">error</span><span>{errors.comoTeEnteraste}</span></div>}
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <Link href="/" className="btn btn--ghost">← Cancelar</Link>
+                  <button type="submit" className="btn btn--primary btn--lg">
+                    Siguiente <span className="icon" style={{fontSize: "20px"}}>arrow_forward</span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 2: Validación SMS */}
+            {currentStep === 2 && (
+              <div className="verify-content">
+                {!phoneOtpSent ? (
+                  <button onClick={sendPhoneOtp} className="btn btn--primary btn--lg btn--full">
+                    Enviar código por SMS
+                  </button>
+                ) : !phoneVerified ? (
+                  <>
+                    <div className="otp-group">
+                      {phoneOtp.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={el => { phoneOtpRefs.current[index] = el }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          className={`otp-input ${phoneOtpError ? 'error' : ''}`}
+                          value={digit}
+                          onChange={(e) => handlePhoneOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handlePhoneOtpKeyDown(index, e)}
+                          autoFocus={index === 0}
+                        />
+                      ))}
+                    </div>
+                    {phoneOtpError && (
+                      <div className="verify-error visible">
+                        <span className="icon">error</span>
+                        {phoneOtpError}
+                      </div>
+                    )}
+                    <div className="verify-resend">
+                      Expira en {formatTime(phoneOtpTimer)} • {' '}
+                      <button 
+                        onClick={resendPhoneOtp} 
+                        disabled={phoneOtpTimer > 0 || phoneResendCount >= 1}
+                      >
+                        Reenviar código
+                      </button>
+                    </div>
+                    {phoneResendCount >= 1 && (
+                      <p style={{textAlign: 'center', fontSize: '13px', color: '#E1251B', marginTop: '12px'}}>
+                        Ya usaste tu reenvío. Contacta a soporte si necesitas ayuda.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="verify-success">
+                    <div className="verify-icon" style={{background: '#E6F4ED'}}>
+                      <span className="icon" style={{color: '#1A7F4B', fontSize: '48px'}}>check_circle</span>
+                    </div>
+                    <p style={{textAlign: 'center', color: '#1A7F4B', fontWeight: 600, marginTop: '16px'}}>
+                      ✓ Teléfono verificado correctamente
+                    </p>
+                  </div>
+                )}
+                <div className="form-actions" style={{marginTop: '32px'}}>
+                  <button onClick={handleBack} className="btn btn--ghost">← Atrás</button>
+                  <button 
+                    onClick={handleNext} 
+                    className="btn btn--primary btn--lg"
+                    disabled={!phoneVerified}
                   >
-                    <option value="">Selecciona un estado</option>
-                    <option>Aguascalientes</option>
-                    <option>Coahuila</option>
-                    <option>Guanajuato</option>
-                    <option>Nuevo León</option>
-                    <option>Querétaro</option>
-                    <option>San Luis Potosí</option>
-                    <option>Tamaulipas</option>
-                  </select>
-                  {errors.estado && <div className="form-group__error"><span className="icon">error</span><span>{errors.estado}</span></div>}
+                    Siguiente <span className="icon" style={{fontSize: "20px"}}>arrow_forward</span>
+                  </button>
                 </div>
-                <div className={`form-group ${errors.ciudad ? 'form-group--error' : ''} ${validFields.has('ciudad') && !errors.ciudad ? 'form-group--success' : ''}`}>
-                  <label className="form-group__label" htmlFor="ciudad">Ciudad / Municipio<span className="req">*</span></label>
-                  <select 
-                    className="form-select" 
-                    id="ciudad"
-                    value={formData.ciudad}
-                    onChange={(e) => {
-                      handleInputChange('ciudad', e.target.value)
-                      validateField('ciudad', e.target.value)
-                    }}
-                    disabled={!formData.estado}
+              </div>
+            )}
+
+            {/* STEP 3: Validación Email */}
+            {currentStep === 3 && (
+              <div className="verify-content">
+                {!emailOtpSent ? (
+                  <button onClick={sendEmailOtp} className="btn btn--primary btn--lg btn--full">
+                    Enviar código por email
+                  </button>
+                ) : !emailVerified ? (
+                  <>
+                    <div className="otp-group">
+                      {emailOtp.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={el => { emailOtpRefs.current[index] = el }}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          className={`otp-input ${emailOtpError ? 'error' : ''}`}
+                          value={digit}
+                          onChange={(e) => handleEmailOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleEmailOtpKeyDown(index, e)}
+                          autoFocus={index === 0}
+                        />
+                      ))}
+                    </div>
+                    {emailOtpError && (
+                      <div className="verify-error visible">
+                        <span className="icon">error</span>
+                        {emailOtpError}
+                      </div>
+                    )}
+                    <div className="verify-resend">
+                      Expira en {formatTime(emailOtpTimer)} • {' '}
+                      <button 
+                        onClick={resendEmailOtp} 
+                        disabled={emailOtpTimer > 0 || emailResendCount >= 1}
+                      >
+                        Reenviar código
+                      </button>
+                    </div>
+                    {emailResendCount >= 1 && (
+                      <p style={{textAlign: 'center', fontSize: '13px', color: '#E1251B', marginTop: '12px'}}>
+                        Ya usaste tu reenvío. Contacta a soporte si necesitas ayuda.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="verify-success">
+                    <div className="verify-icon" style={{background: '#E6F4ED'}}>
+                      <span className="icon" style={{color: '#1A7F4B', fontSize: '48px'}}>check_circle</span>
+                    </div>
+                    <p style={{textAlign: 'center', color: '#1A7F4B', fontWeight: 600, marginTop: '16px'}}>
+                      ✓ Email verificado correctamente
+                    </p>
+                  </div>
+                )}
+                <div className="form-actions" style={{marginTop: '32px'}}>
+                  <button onClick={handleBack} className="btn btn--ghost">← Atrás</button>
+                  <button 
+                    onClick={handleNext} 
+                    className="btn btn--primary btn--lg"
+                    disabled={!emailVerified}
                   >
-                    <option value="">{formData.estado ? 'Selecciona una ciudad' : 'Primero selecciona un estado'}</option>
-                    {ciudades.map(ciudad => (
-                      <option key={ciudad}>{ciudad}</option>
-                    ))}
-                  </select>
-                  {errors.ciudad && <div className="form-group__error"><span className="icon">error</span><span>{errors.ciudad}</span></div>}
+                    Siguiente <span className="icon" style={{fontSize: "20px"}}>arrow_forward</span>
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Información adicional */}
-            <div className="form-section">
-              <h3 className="form-section__title">Información adicional</h3>
-              <div className={`form-group ${errors.comoTeEnteraste ? 'form-group--error' : ''} ${validFields.has('comoTeEnteraste') && !errors.comoTeEnteraste ? 'form-group--success' : ''}`}>
-                <label className="form-group__label" htmlFor="comoTeEnteraste">¿Cómo te enteraste de SPIDI?<span className="req">*</span></label>
-                <select 
-                  className="form-select" 
-                  id="comoTeEnteraste"
-                  value={formData.comoTeEnteraste}
-                  onChange={(e) => {
-                    handleInputChange('comoTeEnteraste', e.target.value)
-                    validateField('comoTeEnteraste', e.target.value)
-                  }}
-                >
-                  <option value="">Selecciona una opción</option>
-                  <option>Redes sociales</option>
-                  <option>Recomendación de amigo o familiar</option>
-                  <option>Búsqueda en internet</option>
-                  <option>Volante o cartel</option>
-                  <option>Otro</option>
-                </select>
-                {errors.comoTeEnteraste && <div className="form-group__error"><span className="icon">error</span><span>{errors.comoTeEnteraste}</span></div>}
+            {/* STEP 4: Resumen */}
+            {currentStep === 4 && (
+              <div className="summary-content">
+                <div className="form-section">
+                  <h3 className="form-section__title">Tus datos personales</h3>
+                  <div className="summary-item" style={{marginBottom: '16px'}}>
+                    <strong>Nombre completo:</strong> {formData.firstName} {formData.middleName} {formData.paternalSurname} {formData.maternalSurname}
+                  </div>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <strong>Teléfono:</strong> {formData.telefono} ✓
+                    </div>
+                    <div className="summary-item">
+                      <strong>Email:</strong> {formData.email} ✓
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h3 className="form-section__title">Tu vehículo</h3>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <strong>Marca:</strong> {formData.marca}
+                    </div>
+                    <div className="summary-item">
+                      <strong>Modelo:</strong> {formData.modelo}
+                    </div>
+                    <div className="summary-item">
+                      <strong>Año:</strong> {formData.anio}
+                    </div>
+                    <div className="summary-item">
+                      <strong>Color:</strong> {formData.color}
+                    </div>
+                  </div>
+                  <div className="summary-item" style={{marginTop: '8px'}}>
+                    <strong>Placas:</strong> {formData.placas}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h3 className="form-section__title">Zona de trabajo deseada</h3>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <strong>Estado:</strong> {formData.estado}
+                    </div>
+                    <div className="summary-item">
+                      <strong>Ciudad:</strong> {formData.ciudad}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="form-actions">
+                  <button onClick={handleBack} className="btn btn--ghost">← Atrás</button>
+                  <button 
+                    onClick={handleNext} 
+                    className="btn btn--primary btn--lg"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Enviando...' : 'Enviar solicitud'} {!isSubmitting && <span className="icon" style={{fontSize: "20px"}}>send</span>}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Actions */}
-            <div className="form-actions">
-              <Link href="/" className="btn btn--ghost">← Cancelar</Link>
-              <button type="submit" className="btn btn--primary btn--lg" id="btnSubmit">
-                Enviar solicitud <span className="icon" style={{fontSize: "20px"}}>send</span>
-              </button>
-            </div>
+            {/* STEP 5: Confirmación */}
+            {currentStep === 5 && (
+              <div className="confirm-content">
+                <div className="verify-icon" style={{background: '#E6F4ED', width: '80px', height: '80px', margin: '0 auto 24px'}}>
+                  <span className="icon" style={{color: '#1A7F4B', fontSize: '64px'}}>check_circle</span>
+                </div>
+                <div style={{textAlign: 'center', maxWidth: '400px', margin: '0 auto'}}>
+                  <p style={{fontSize: '16px', color: '#2A3545', marginBottom: '16px'}}>
+                    Recibirás un correo de confirmación en <strong>{formData.email}</strong> con los próximos pasos.
+                  </p>
+                  <p style={{fontSize: '14px', color: '#5C6E84', marginBottom: '32px'}}>
+                    Nuestro equipo revisará tu solicitud en las próximas <strong>24-48 horas</strong>.
+                  </p>
+                  <Link href="/" className="btn btn--primary btn--lg btn--full">
+                    Regresar al inicio
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {currentStep < 5 && (
             <div className="form-actions__note">
               <span className="icon">lock</span>
               Tu información está protegida con encriptación SSL
             </div>
-          </form>
+          )}
         </div>
       </div>
 

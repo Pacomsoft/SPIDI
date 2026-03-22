@@ -484,4 +484,231 @@
   .reg-footer a {
     margin: 0;
   }
+  
+  .verify-steps {
+    flex-wrap: wrap;
+  }
+  
+  .otp-group {
+    gap: 6px;
+  }
+  
+  .otp-input {
+    width: 42px;
+    height: 50px;
+    font-size: 20px;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
+
+/* ── Wizard Styles ── */
+
+/* Progress steps indicator */
+.verify-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-primary-subtle);
+}
+
+.verify-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  padding: 6px 14px;
+  border-radius: 50px;
+  background: var(--color-primary-ghost);
+  transition: all 0.3s ease;
+}
+
+.verify-step .icon {
+  font-size: 16px;
+}
+
+.verify-step.active {
+  color: #fff;
+  background: var(--color-primary-darker);
+}
+
+.verify-step.done {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.verify-step-divider {
+  color: var(--color-primary-subtle);
+  font-size: 14px;
+  user-select: none;
+}
+
+/* Wizard content */
+.wizard-content {
+  min-height: 300px;
+}
+
+/* Verify content (OTP screens) */
+.verify-content {
+  padding: 20px 0;
+}
+
+.verify-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--color-primary-xlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  transition: all 0.3s ease;
+}
+
+.verify-icon .icon {
+  font-size: 32px;
+  color: var(--color-primary-mid);
+}
+
+/* OTP input group */
+.otp-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.otp-input {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid var(--color-primary-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--color-primary-darker);
+  background: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+  caret-color: var(--color-accent);
+}
+
+.otp-input:focus {
+  border-color: var(--color-primary-mid);
+  box-shadow: 0 0 0 3px rgba(92,110,132,0.12);
+}
+
+.otp-input.error {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(225,37,27,0.08);
+  animation: shake 0.4s ease;
+}
+
+.otp-input.success {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* Verify error */
+.verify-error {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-error);
+  margin-bottom: 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.verify-error.visible {
+  display: flex;
+}
+
+.verify-error .icon {
+  font-size: 16px;
+}
+
+/* Resend controls */
+.verify-resend {
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-primary-mid);
+  margin-top: 20px;
+}
+
+.verify-resend button {
+  background: none;
+  border: none;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  cursor: not-allowed;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.verify-resend button:not(:disabled) {
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.verify-resend button:not(:disabled):hover {
+  color: var(--color-accent-dark);
+  text-decoration: underline;
+}
+
+/* Success state */
+.verify-success {
+  text-align: center;
+  padding: 20px 0;
+}
+
+/* Summary content */
+.summary-content {
+  padding: 20px 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  padding: 14px;
+  background: var(--color-primary-ghost);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--color-primary-darker);
+}
+
+.summary-item strong {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--color-primary-mid);
+}
+
+/* Confirm content */
+.confirm-content {
+  padding: 40px 0;
+  text-align: center;
+}
+

@@ -1,0 +1,556 @@
+"use client"
+
+import Link from "next/link"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import "../landing.css"
+import "./registro.css"
+
+// Ubicaciones HEB / Mi Tienda
+const CIUDADES_POR_ESTADO: Record<string, string[]> = {
+  'Aguascalientes': ['Aguascalientes'],
+  'Coahuila': ['Piedras Negras', 'Saltillo', 'Torreón'],
+  'Guanajuato': ['León'],
+  'Nuevo León': ['Apodaca', 'Escobedo', 'García', 'Guadalupe', 'Juárez', 'Monterrey', 'Pesquería', 'San Nicolás de los Garza', 'San Pedro Garza García', 'Santa Catarina'],
+  'Querétaro': ['Querétaro'],
+  'San Luis Potosí': ['San Luis Potosí'],
+  'Tamaulipas': ['Matamoros', 'Nuevo Laredo', 'Reynosa', 'Tampico'],
+}
+
+type FieldConfig = {
+  id: string
+  required?: boolean
+  min?: number
+  max?: number
+  pattern?: RegExp
+  custom?: (val: string) => boolean
+  transform?: (val: string) => string
+  type?: 'text' | 'select'
+  msg: string
+}
+
+const yearValidator = (val: string) => {
+  const n = parseInt(val, 10)
+  return n >= 1990 && n <= 2026
+}
+
+const FIELDS: FieldConfig[] = [
+  { id: 'firstName', required: true, min: 2, max: 100, msg: 'Ingresa tu primer nombre' },
+  { id: 'middleName', required: false, min: 0, max: 100, msg: 'Ingresa tu segundo nombre' },
+  { id: 'paternalSurname', required: true, min: 2, max: 100, msg: 'Ingresa tu apellido paterno' },
+  { id: 'maternalSurname', required: false, min: 0, max: 100, msg: 'Ingresa tu apellido materno' },
+  { id: 'telefono', required: true, pattern: /^\d{10}$/, msg: 'Ingresa 10 dígitos' },
+  { id: 'email', required: true, pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, max: 255, msg: 'Ingresa un correo válido' },
+  { id: 'marca', required: true, min: 2, max: 30, msg: 'Ingresa la marca del vehículo' },
+  { id: 'modelo', required: true, min: 1, max: 50, msg: 'Ingresa el modelo del vehículo' },
+  { id: 'anio', required: true, pattern: /^\d{4}$/, custom: yearValidator, msg: 'Ingresa un año válido (1990–2026)' },
+  { id: 'placas', required: true, min: 2, max: 10, transform: (v) => v.toUpperCase(), msg: 'Ingresa las placas del vehículo' },
+  { id: 'color', required: true, min: 2, max: 30, msg: 'Ingresa el color del vehículo' },
+  { id: 'estado', required: true, type: 'select', msg: 'Selecciona un estado' },
+  { id: 'ciudad', required: true, type: 'select', msg: 'Selecciona una ciudad' },
+  { id: 'comoTeEnteraste', required: true, type: 'select', msg: 'Selecciona una opción' },
+]
+
+export default function RegistroPage() {
+  const router = useRouter()
+  const [currentStep, setCurrentStep] = useState(1)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    middleName: "",
+    paternalSurname: "",
+    maternalSurname: "",
+    telefono: "",
+    email: "",
+    marca: "",
+    modelo: "",
+    anio: "",
+    placas: "",
+    color: "",
+    estado: "",
+    ciudad: "",
+    comoTeEnteraste: ""
+  })
+
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [validFields, setValidFields] = useState<Set<string>>(new Set())
+  const [ciudades, setCiudades] = useState<string[]>([])
+
+  // Cargar datos desde localStorage o sessionStorage al montar
+  useEffect(() => {
+    const cachedData = localStorage.getItem('spidi_registro_cache')
+    if (cachedData) {
+      try {
+        const { data, timestamp } = JSON.parse(cachedData)
+        const now = Date.now()
+        const twentyFourHours = 24 * 60 * 60 * 1000
+        
+        // Verificar que no hayan pasado 24 horas
+        if (now - timestamp < twentyFourHours) {
+          setFormData(data)
+          // Restaurar ciudades si hay estado
+          if (data.estado) {
+            setCiudades(CIUDADES_POR_ESTADO[data.estado] || [])
+          }
+        } else {
+          // Limpiar cache expirado
+          localStorage.removeItem('spidi_registro_cache')
+        }
+      } catch (e) {
+        console.error('Error loading cached data:', e)
+      }
+    }
+  }, [])
+
+  const validateField = (id: string, value?: string) => {
+    const cfg = FIELDS.find(f => f.id === id)
+    if (!cfg) return true
+
+    let val = value !== undefined ? value : formData[id as keyof typeof formData]
+    val = val.trim()
+
+    let err: string | null = null
+
+    if (cfg.required && !val) {
+      err = cfg.msg
+    } else if (val) {
+      if (cfg.min && val.length < cfg.min) err = cfg.msg
+      if (cfg.max && val.length > cfg.max) err = cfg.msg
+      if (cfg.pattern && !cfg.pattern.test(val)) err = cfg.msg
+      if (cfg.custom && !cfg.custom(val)) err = cfg.msg
+      if (cfg.type === 'select' && !val) err = cfg.msg
+    }
+
+    setErrors(prev => {
+      const newErrors = { ...prev }
+      if (err) {
+        newErrors[id] = err
+      } else {
+        delete newErrors[id]
+      }
+      return newErrors
+    })
+
+    setValidFields(prev => {
+      const newSet = new Set(prev)
+      if (!err && val) {
+        newSet.add(id)
+      } else {
+        newSet.delete(id)
+      }
+      return newSet
+    })
+
+    return !err
+  }
+
+  const handleInputChange = (id: string, value: string) => {
+    const cfg = FIELDS.find(f => f.id === id)
+    let newValue = value
+
+    // Apply transformation if exists
+    if (cfg?.transform) {
+      newValue = cfg.transform(newValue)
+    }
+
+    const updatedData = { ...formData, [id]: newValue }
+    setFormData(updatedData)
+
+    // Guardar en localStorage para persistencia
+    localStorage.setItem('spidi_registro_cache', JSON.stringify({
+      data: updatedData,
+      timestamp: Date.now()
+    }))
+
+    // Validate if field already has error
+    if (errors[id]) {
+      validateField(id, newValue)
+    }
+  }
+
+  const handleBlur = (id: string) => {
+    validateField(id)
+  }
+
+  const handleEstadoChange = (estado: string) => {
+    const updatedData = { ...formData, estado, ciudad: "" }
+    setFormData(updatedData)
+    setCiudades(CIUDADES_POR_ESTADO[estado] || [])
+    
+    // Guardar en localStorage
+    localStorage.setItem('spidi_registro_cache', JSON.stringify({
+      data: updatedData,
+      timestamp: Date.now()
+    }))
+    
+    // Clear errors for estado and ciudad
+    setErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors.estado
+      delete newErrors.ciudad
+      return newErrors
+    })
+    
+    validateField('estado', estado)
+  }
+
+  const validateAll = () => {
+    const newErrors: Record<string, string> = {}
+    let firstErrorField: string | null = null
+
+    FIELDS.forEach(f => {
+      if (!validateField(f.id)) {
+        if (!firstErrorField) firstErrorField = f.id
+      }
+    })
+
+    return firstErrorField
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    const firstError = validateAll()
+    
+    if (!firstError) {
+      // Guardar datos en sessionStorage
+      sessionStorage.setItem('spidi_step1', JSON.stringify(formData))
+      // Navegar a verificación
+      router.push('/registro/verificar')
+    } else {
+      // Scroll to first error
+      const el = document.getElementById(firstError)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.focus()
+      }
+    }
+  }
+
+  return (
+    <div className="reg-page">
+      {/* Navbar */}
+      <nav className="navbar">
+        <div className="navbar__inner">
+          <Link href="/" className="navbar__logo" aria-label="SPIDI inicio">
+            <SpidiLogo />
+          </Link>
+        </div>
+      </nav>
+
+      {/* Branded Header */}
+      <header className="reg-header">
+        <h1 className="reg-header__title">Regístrate como repartidor SPIDI</h1>
+        <p className="reg-header__subtitle">Completa el formulario y comienza a generar ingresos</p>
+      </header>
+
+      {/* Form Container */}
+      <div className="reg-container">
+        <div className="reg-card">
+          {/* Card Header */}
+          <div className="reg-card__header">
+            <div className="reg-card__icon"><span className="icon">person_add</span></div>
+            <h2 className="reg-card__title">Cuéntanos sobre ti</h2>
+            <p className="reg-card__desc">Solo toma 2 minutos. Completa tus datos y verificaremos tu correo y teléfono.</p>
+            <div className="reg-card__benefits">
+              <span className="reg-card__benefit"><span className="icon">check_circle</span> 100% en línea</span>
+              <span className="reg-card__benefit"><span className="icon">check_circle</span> Sin costo</span>
+              <span className="reg-card__benefit"><span className="icon">check_circle</span> Respuesta en 24-48h</span>
+            </div>
+          </div>
+
+          {/* Form */}
+          <form id="reg-form" onSubmit={handleSubmit} noValidate>
+            {/* Datos personales */}
+            <div className="form-section">
+              <h3 className="form-section__title">Datos personales</h3>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.firstName ? 'form-group--error' : ''} ${validFields.has('firstName') && !errors.firstName ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="firstName">Primer nombre<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="firstName" 
+                    placeholder="Ej. Juan" 
+                    maxLength={100}
+                    autoComplete="given-name"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    onBlur={() => handleBlur('firstName')}
+                  />
+                  {errors.firstName && <div className="form-group__error"><span className="icon">error</span><span>{errors.firstName}</span></div>}
+                </div>
+                <div className={`form-group ${errors.middleName ? 'form-group--error' : ''} ${validFields.has('middleName') && !errors.middleName ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="middleName">Segundo nombre</label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="middleName" 
+                    placeholder="Ej. Carlos (opcional)" 
+                    maxLength={100}
+                    autoComplete="additional-name"
+                    value={formData.middleName}
+                    onChange={(e) => handleInputChange('middleName', e.target.value)}
+                    onBlur={() => handleBlur('middleName')}
+                  />
+                  {errors.middleName && <div className="form-group__error"><span className="icon">error</span><span>{errors.middleName}</span></div>}
+                </div>
+              </div>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.paternalSurname ? 'form-group--error' : ''} ${validFields.has('paternalSurname') && !errors.paternalSurname ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="paternalSurname">Apellido paterno<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="paternalSurname" 
+                    placeholder="Ej. García" 
+                    maxLength={100}
+                    autoComplete="family-name"
+                    value={formData.paternalSurname}
+                    onChange={(e) => handleInputChange('paternalSurname', e.target.value)}
+                    onBlur={() => handleBlur('paternalSurname')}
+                  />
+                  {errors.paternalSurname && <div className="form-group__error"><span className="icon">error</span><span>{errors.paternalSurname}</span></div>}
+                </div>
+                <div className={`form-group ${errors.maternalSurname ? 'form-group--error' : ''} ${validFields.has('maternalSurname') && !errors.maternalSurname ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="maternalSurname">Apellido materno</label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="maternalSurname" 
+                    placeholder="Ej. López (opcional)" 
+                    maxLength={100}
+                    autoComplete="additional-name"
+                    value={formData.maternalSurname}
+                    onChange={(e) => handleInputChange('maternalSurname', e.target.value)}
+                    onBlur={() => handleBlur('maternalSurname')}
+                  />
+                  {errors.maternalSurname && <div className="form-group__error"><span className="icon">error</span><span>{errors.maternalSurname}</span></div>}
+                </div>
+              </div>
+            </div>
+
+            {/* Contacto */}
+            <div className="form-section">
+              <h3 className="form-section__title">Contacto</h3>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.telefono ? 'form-group--error' : ''} ${validFields.has('telefono') && !errors.telefono ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="telefono">Teléfono celular<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="tel" 
+                    id="telefono" 
+                    placeholder="10 dígitos" 
+                    maxLength={10}
+                    autoComplete="tel"
+                    inputMode="numeric"
+                    value={formData.telefono}
+                    onChange={(e) => handleInputChange('telefono', e.target.value.replace(/\D/g, ''))}
+                    onBlur={() => handleBlur('telefono')}
+                  />
+                  {errors.telefono && <div className="form-group__error"><span className="icon">error</span><span>{errors.telefono}</span></div>}
+                </div>
+                <div className={`form-group ${errors.email ? 'form-group--error' : ''} ${validFields.has('email') && !errors.email ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="email">Correo electrónico<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="email" 
+                    id="email" 
+                    placeholder="tu@correo.com" 
+                    maxLength={255}
+                    autoComplete="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    onBlur={() => handleBlur('email')}
+                  />
+                  {errors.email && <div className="form-group__error"><span className="icon">error</span><span>{errors.email}</span></div>}
+                </div>
+              </div>
+            </div>
+
+            {/* Datos del vehículo */}
+            <div className="form-section">
+              <h3 className="form-section__title">Datos del vehículo</h3>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.marca ? 'form-group--error' : ''} ${validFields.has('marca') && !errors.marca ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="marca">Marca<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="marca" 
+                    placeholder="Ej. Toyota" 
+                    maxLength={30}
+                    value={formData.marca}
+                    onChange={(e) => handleInputChange('marca', e.target.value)}
+                    onBlur={() => handleBlur('marca')}
+                  />
+                  {errors.marca && <div className="form-group__error"><span className="icon">error</span><span>{errors.marca}</span></div>}
+                </div>
+                <div className={`form-group ${errors.modelo ? 'form-group--error' : ''} ${validFields.has('modelo') && !errors.modelo ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="modelo">Modelo<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="modelo" 
+                    placeholder="Ej. Corolla" 
+                    maxLength={50}
+                    value={formData.modelo}
+                    onChange={(e) => handleInputChange('modelo', e.target.value)}
+                    onBlur={() => handleBlur('modelo')}
+                  />
+                  {errors.modelo && <div className="form-group__error"><span className="icon">error</span><span>{errors.modelo}</span></div>}
+                </div>
+              </div>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.anio ? 'form-group--error' : ''} ${validFields.has('anio') && !errors.anio ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="anio">Año<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="anio" 
+                    placeholder="Ej. 2020" 
+                    maxLength={4}
+                    inputMode="numeric"
+                    value={formData.anio}
+                    onChange={(e) => handleInputChange('anio', e.target.value.replace(/\D/g, ''))}
+                    onBlur={() => handleBlur('anio')}
+                  />
+                  {errors.anio && <div className="form-group__error"><span className="icon">error</span><span>{errors.anio}</span></div>}
+                </div>
+                <div className={`form-group ${errors.placas ? 'form-group--error' : ''} ${validFields.has('placas') && !errors.placas ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="placas">Placas<span className="req">*</span></label>
+                  <input 
+                    className="form-input" 
+                    type="text" 
+                    id="placas" 
+                    placeholder="Ej. ABC1234" 
+                    maxLength={10}
+                    style={{textTransform:'uppercase'}}
+                    value={formData.placas}
+                    onChange={(e) => handleInputChange('placas', e.target.value)}
+                    onBlur={() => handleBlur('placas')}
+                  />
+                  {errors.placas && <div className="form-group__error"><span className="icon">error</span><span>{errors.placas}</span></div>}
+                </div>
+              </div>
+              <div className={`form-group ${errors.color ? 'form-group--error' : ''} ${validFields.has('color') && !errors.color ? 'form-group--success' : ''}`}>
+                <label className="form-group__label" htmlFor="color">Color<span className="req">*</span></label>
+                <input 
+                  className="form-input" 
+                  type="text" 
+                  id="color" 
+                  placeholder="Ej. Blanco" 
+                  maxLength={30}
+                  value={formData.color}
+                  onChange={(e) => handleInputChange('color', e.target.value)}
+                  onBlur={() => handleBlur('color')}
+                />
+                {errors.color && <div className="form-group__error"><span className="icon">error</span><span>{errors.color}</span></div>}
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div className="form-section">
+              <h3 className="form-section__title">Ubicación</h3>
+              <div className="form-group__row">
+                <div className={`form-group ${errors.estado ? 'form-group--error' : ''} ${validFields.has('estado') && !errors.estado ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="estado">Estado<span className="req">*</span></label>
+                  <select 
+                    className="form-select" 
+                    id="estado"
+                    value={formData.estado}
+                    onChange={(e) => handleEstadoChange(e.target.value)}
+                  >
+                    <option value="">Selecciona un estado</option>
+                    <option>Aguascalientes</option>
+                    <option>Coahuila</option>
+                    <option>Guanajuato</option>
+                    <option>Nuevo León</option>
+                    <option>Querétaro</option>
+                    <option>San Luis Potosí</option>
+                    <option>Tamaulipas</option>
+                  </select>
+                  {errors.estado && <div className="form-group__error"><span className="icon">error</span><span>{errors.estado}</span></div>}
+                </div>
+                <div className={`form-group ${errors.ciudad ? 'form-group--error' : ''} ${validFields.has('ciudad') && !errors.ciudad ? 'form-group--success' : ''}`}>
+                  <label className="form-group__label" htmlFor="ciudad">Ciudad / Municipio<span className="req">*</span></label>
+                  <select 
+                    className="form-select" 
+                    id="ciudad"
+                    value={formData.ciudad}
+                    onChange={(e) => {
+                      handleInputChange('ciudad', e.target.value)
+                      validateField('ciudad', e.target.value)
+                    }}
+                    disabled={!formData.estado}
+                  >
+                    <option value="">{formData.estado ? 'Selecciona una ciudad' : 'Primero selecciona un estado'}</option>
+                    {ciudades.map(ciudad => (
+                      <option key={ciudad}>{ciudad}</option>
+                    ))}
+                  </select>
+                  {errors.ciudad && <div className="form-group__error"><span className="icon">error</span><span>{errors.ciudad}</span></div>}
+                </div>
+              </div>
+            </div>
+
+            {/* Información adicional */}
+            <div className="form-section">
+              <h3 className="form-section__title">Información adicional</h3>
+              <div className={`form-group ${errors.comoTeEnteraste ? 'form-group--error' : ''} ${validFields.has('comoTeEnteraste') && !errors.comoTeEnteraste ? 'form-group--success' : ''}`}>
+                <label className="form-group__label" htmlFor="comoTeEnteraste">¿Cómo te enteraste de SPIDI?<span className="req">*</span></label>
+                <select 
+                  className="form-select" 
+                  id="comoTeEnteraste"
+                  value={formData.comoTeEnteraste}
+                  onChange={(e) => {
+                    handleInputChange('comoTeEnteraste', e.target.value)
+                    validateField('comoTeEnteraste', e.target.value)
+                  }}
+                >
+                  <option value="">Selecciona una opción</option>
+                  <option>Redes sociales</option>
+                  <option>Recomendación de amigo o familiar</option>
+                  <option>Búsqueda en internet</option>
+                  <option>Volante o cartel</option>
+                  <option>Otro</option>
+                </select>
+                {errors.comoTeEnteraste && <div className="form-group__error"><span className="icon">error</span><span>{errors.comoTeEnteraste}</span></div>}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="form-actions">
+              <Link href="/" className="btn btn--ghost">← Cancelar</Link>
+              <button type="submit" className="btn btn--primary btn--lg" id="btnSubmit">
+                Siguiente <span className="icon" style={{fontSize: "20px"}}>arrow_forward</span>
+              </button>
+            </div>
+            <div className="form-actions__note">
+              <span className="icon">lock</span>
+              Tu información está protegida con encriptación SSL
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="reg-footer">
+        <span>© 2026 SPIDI Inc.</span>
+        <a href="#">Términos</a>
+        <a href="#">Privacidad</a>
+      </footer>
+    </div>
+  )
+}
+
+function SpidiLogo() {
+  return (
+    <svg width="607" height="325" viewBox="0 0 607 325" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M108.405 19.2979C123.111 17.756 141.489 22.8443 152.023 33.5297C167.375 49.1028 166.088 71.5854 163.577 91.6318C162.253 102.199 161.799 112.852 153.579 120.618C143.972 130.042 124.91 129.856 115.609 120.002C105.772 109.499 112.685 93.5137 113.424 80.9867C113.65 77.1447 115.308 67.1779 108.792 67.0666C103.274 66.9723 100.542 74.6153 99.806 79.213C97.7704 91.9239 94.9991 105.776 98.3363 118.486C99.9766 124.539 104.669 131.805 108.37 136.37C125.428 157.407 147.037 174.92 147.523 204.427C148.661 229.431 144.801 261.897 127.766 281.459C115.439 295.614 99.8708 300.642 81.8067 301.837C80.4298 301.945 79.0511 302.022 77.6707 302.071C61.5613 302.551 45.197 299.553 33.1928 288.074C16.7542 272.501 19.4398 249.798 21.8844 229.431C23.1948 218.515 25.5501 207.716 36.1707 201.993C45.426 197.007 62.0204 197.343 69.7314 205.114C80.3083 215.777 73.1135 232.789 72.9937 245.767C72.9384 247.529 73.4584 252.425 75.2058 253.395C86.3128 259.554 88.4171 243.015 89.2586 238.277C93.5966 213.872 91.0133 198.229 73.7599 179.889C58.1113 163.257 40.9399 143.953 40.2311 119.935C39.9804 111.782 40.0077 103.791 41.2372 95.6419C43.284 75.6172 47.7463 57.022 61.2913 41.2532C73.6951 26.8134 89.7166 20.643 108.405 19.2979Z" fill="#3E4C5E"/>
+      <path d="M556.7 22.4541C564.176 22.4629 570.868 23.546 576.649 28.6245C587.116 37.8216 584.791 51.9417 583.229 64.2008C582.242 71.9555 581.233 79.5161 580.214 87.172L572.024 150.539L560.566 239.089C558.853 251.801 557.386 264.622 555.306 277.243C553.671 287.167 547.024 295.764 537.184 298.517C533.945 299.424 531.182 299.441 527.859 299.536C519.787 299.595 512.899 299.641 506.396 294.139C496.234 285.542 499.645 271.517 501.175 260.153L504.204 237.415L514.503 159.702L524.269 84.2717L527.263 60.5165C528.549 50.3133 528.822 39.7616 536.063 31.7555C541.901 25.2984 548.19 22.9944 556.7 22.4541Z" fill="#3E4C5E"/>
+      <path d="M348.776 22.4587C364.058 22.7333 375.789 30.213 375.863 47.0454C375.912 58.2004 373.579 70.9764 372.06 82.2078L365.119 135.415L353.118 228.972L349.193 258.479C346.409 279.971 345.726 299.095 318.548 299.567C316.062 299.567 313.509 299.599 311.121 299.406C300.479 298.853 290.806 290.039 290.762 279.053C290.726 269.836 292.786 258.816 293.952 249.423L304.096 172.43L315.285 87.1469C317.092 73.385 318.223 59.2467 320.723 45.6064C323.524 30.3388 334.114 23.3279 348.776 22.4587Z" fill="#3E4C5E"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M235.8 22.9583C255.646 22.9856 273.948 21.8885 289.613 37.1751C300.451 47.7509 303.511 64.7876 303.192 79.3255C302.975 89.1465 301.351 101.173 300.065 111.132C296.784 136.558 295.537 165.517 275.938 184.484C258.602 201.261 239.905 200.946 217.915 200.848C215.742 218.967 213.436 237.069 210.996 255.153C209.746 263.074 209.161 271.349 207.563 279.179C205.645 288.564 197.212 297.949 187.257 299.098C142.173 304.301 151.948 273.709 155.842 244.269L162.155 195.532L176.457 86.7053C177.758 77.2138 179.01 67.7153 180.213 58.2112C182.179 42.6287 181.28 25.551 200.794 23.1311C202.297 22.9666 204.944 22.9606 206.531 22.9505L235.8 22.9583ZM247.227 79.0208C247.616 69.3864 242.119 69.7417 234.625 69.928C232.272 94.7806 227.601 119.929 224.95 144.809C224.669 147.445 224.266 150.311 223.857 152.925C227.729 152.956 231.547 153.403 234.858 151.297C239.345 146.611 240.072 136.578 240.949 130.129L243.699 109.695C245.053 99.5598 246.814 89.2085 247.227 79.0208Z" fill="#3E4C5E"/>
+      <path fillRule="evenodd" clipRule="evenodd" d="M408.668 23.1422C414.078 22.4733 424.269 22.8242 429.97 22.9615C445.892 23.3439 463.376 21.3268 478.665 26.1021C502.323 33.4922 511.41 54.661 510.805 77.9742C510.514 89.1802 509.005 99.2513 507.573 110.365L494.382 211.41C490.106 243.33 487.539 275.825 454.874 292.41C441.136 298.237 432.802 298.734 418.115 298.765C405.989 298.79 393.193 298.625 381.165 298.752C355.511 299.014 358.423 284.362 360.668 265.847C361.687 257.205 362.804 248.569 364.013 239.951L373.985 164.475L385.248 77.6099C386.848 65.5337 388.266 53.2216 390.013 41.192C390.931 34.8823 394.514 28.68 400.06 25.4713C403.24 23.6295 404.998 23.5603 408.668 23.1422ZM442.271 69.9029L427.231 185.783C425.316 199.976 423.47 214.184 421.702 228.398C420.781 235.591 419.439 244.219 418.812 251.349C422.864 251.346 426.009 251.727 429.458 249.353C431.755 246.835 432.676 244.612 433.32 241.289C435.691 229.008 437.327 216.32 438.966 203.926L452.094 102.799C453.144 94.847 454.601 86.5579 454.688 78.5572C454.786 69.4145 449.362 69.8094 442.271 69.9029Z" fill="#3E4C5E"/>
+    </svg>
+  )
+}

@@ -7,17 +7,59 @@ import "../../landing.css"
 import "../registro.css"
 import "./verificar.css"
 
-type Phase = 'email' | 'phone'
+type Phase = 'phone' | 'email' | 'completed'
+
+type VerificationState = {
+  phase: Phase
+  phoneVerified: boolean
+  emailVerified: boolean
+  phoneAttempts: number
+  emailAttempts: number
+  phoneResendCount: number
+  emailResendCount: number
+  isBlocked: boolean
+  blockUntil: number | null
+}
+
+const OTP_EXPIRY_TIME = 600 // 10 minutos en segundos
+const MAX_ATTEMPTS = 3
+const MAX_RESEND = 1
+const BLOCK_TIME = 600000 // 10 minutos en milisegundos
 
 export default function VerificarPage() {
   const router = useRouter()
-  const [phase, setPhase] = useState<Phase>('email')
+  
+  // Cargar estado guardado o inicializar
+  const [state, setState] = useState<VerificationState>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = sessionStorage.getItem('spidi_verification_state')
+      if (saved) {
+        return JSON.parse(saved)
+      }
+    }
+    return {
+      phase: 'phone' as Phase,
+      phoneVerified: false,
+      emailVerified: false,
+      phoneAttempts: 0,
+      emailAttempts: 0,
+      phoneResendCount: 0,
+      emailResendCount: 0,
+      isBlocked: false,
+      blockUntil: null
+    }
+  })
+
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [showError, setShowError] = useState(false)
-  const [countdown, setCountdown] = useState(60)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [countdown, setCountdown] = useState(OTP_EXPIRY_TIME)
   const [isVerifying, setIsVerifying] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [showToast, setShowToast] = useState(false)
+  const [isDuplicateContact, setIsDuplicateContact] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
   const inputRefs = [
     useRef<HTMLInputElement>(null),
     useRef<HTMLInputElement>(null),
@@ -27,7 +69,22 @@ export default function VerificarPage() {
     useRef<HTMLInputElement>(null),
   ]
 
-  const [userData, setUserData] = useState({ email: '', telefono: '' })
+  const [userData, setUserData] = useState({ email: '', telefono: '', nombre: '' })
+
+  // Verificar bloqueo al cargar
+  useEffect(() => {
+    if (state.blockUntil && Date.now() < state.blockUntil) {
+      setState(prev => ({ ...prev, isBlocked: true }))
+    } else if (state.blockUntil && Date.now() >= state.blockUntil) {
+      setState(prev => ({ 
+        ...prev, 
+        isBlocked: false, 
+        blockUntil: null,
+        phoneAttempts: 0,
+        emailAttempts: 0
+      }))
+    }
+  }, [state.blockUntil])
 
   useEffect(() => {
     const step1Data = sessionStorage.getItem('spidi_step1')
@@ -39,28 +96,47 @@ export default function VerificarPage() {
     const data = JSON.parse(step1Data)
     setUserData({
       email: data.email,
-      telefono: data.telefono
+      telefono: data.telefono,
+      nombre: data.nombre
     })
+
+    // Simular verificación de duplicados
+    checkDuplicateContact(data.telefono, data.email)
 
     inputRefs[0].current?.focus()
   }, [router])
 
+  // Guardar estado en sessionStorage
   useEffect(() => {
-    if (countdown > 0 && !showSuccess) {
+    sessionStorage.setItem('spidi_verification_state', JSON.stringify(state))
+  }, [state])
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown > 0 && !showSuccess && !state.isBlocked) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
       return () => clearTimeout(timer)
     }
-  }, [countdown, showSuccess])
+  }, [countdown, showSuccess, state.isBlocked])
 
-  // Reset when phase changes
+  // Reset OTP when phase changes
   useEffect(() => {
     if (showSuccess) return
     setOtp(['', '', '', '', '', ''])
     setShowError(false)
-    setCountdown(60)
+    setErrorMessage('')
+    setCountdown(OTP_EXPIRY_TIME)
     setIsVerifying(false)
     inputRefs[0].current?.focus()
-  }, [phase, showSuccess])
+  }, [state.phase, showSuccess])
+
+  const checkDuplicateContact = async (telefono: string, email: string) => {
+    // Simular llamada API para verificar duplicados
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // En una implementación real, aquí se verificaría contra la BD
+    const isDuplicate = false // Cambiar según resultado de API
+    setIsDuplicateContact(isDuplicate)
+  }
 
   const maskEmail = (email: string) => {
     if (!email) return '***@***.com'
@@ -73,6 +149,12 @@ export default function VerificarPage() {
     return '*** ' + phone.slice(-7, -4) + ' ' + phone.slice(-4)
   }
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
   const handleOtpChange = (index: number, value: string) => {
     if (value && !/^\d$/.test(value)) return
 
@@ -80,6 +162,7 @@ export default function VerificarPage() {
     newOtp[index] = value
     setOtp(newOtp)
     setShowError(false)
+    setErrorMessage('')
 
     if (value && index < 5) {
       inputRefs[index + 1].current?.focus()
@@ -124,10 +207,11 @@ export default function VerificarPage() {
   }
 
   const handleVerify = async (code?: string) => {
-    if (isVerifying) return
+    if (isVerifying || state.isBlocked) return
     
     const fullCode = code || otp.join('')
     if (fullCode.length < 6) {
+      setErrorMessage('Código incorrecto. Intenta de nuevo.')
       setShowError(true)
       setTimeout(() => setShowError(false), 3000)
       return
@@ -138,37 +222,130 @@ export default function VerificarPage() {
     // Simular verificación API
     await new Promise(resolve => setTimeout(resolve, 1200))
 
-    // Success
-    setShowSuccess(true)
-    
-    setTimeout(() => {
-      if (phase === 'email') {
-        setPhase('phone')
+    // Simular validación (en producción validar contra backend)
+    const isValid = true // Cambiar según respuesta del servidor
+
+    setIsVerifying(false)
+
+    if (isValid) {
+      // Success
+      setShowSuccess(true)
+      
+      if (state.phase === 'phone') {
+        setState(prev => ({ ...prev, phoneVerified: true }))
+        setTimeout(() => {
+          setState(prev => ({ ...prev, phase: 'email' }))
+          setShowSuccess(false)
+        }, 1800)
+      } else if (state.phase === 'email') {
+        setState(prev => ({ ...prev, emailVerified: true, phase: 'completed' }))
         setShowSuccess(false)
-      } else {
-        router.push('/registro/confirmacion')
       }
-    }, 1800)
+    } else {
+      // Error: incrementar intentos
+      const currentAttempts = state.phase === 'phone' ? state.phoneAttempts : state.emailAttempts
+      const newAttempts = currentAttempts + 1
+
+      if (newAttempts >= MAX_ATTEMPTS) {
+        // Bloquear después de 3 intentos
+        const blockUntil = Date.now() + BLOCK_TIME
+        setState(prev => ({
+          ...prev,
+          [state.phase === 'phone' ? 'phoneAttempts' : 'emailAttempts']: newAttempts,
+          isBlocked: true,
+          blockUntil
+        }))
+        setErrorMessage('Has superado el número máximo de intentos. Solicita un nuevo código en 10 minutos.')
+        setShowError(true)
+      } else {
+        setState(prev => ({
+          ...prev,
+          [state.phase === 'phone' ? 'phoneAttempts' : 'emailAttempts']: newAttempts
+        }))
+        setErrorMessage(`Código incorrecto. Te quedan ${MAX_ATTEMPTS - newAttempts} intentos.`)
+        setShowError(true)
+        setTimeout(() => setShowError(false), 4000)
+      }
+    }
   }
 
   const handleResend = () => {
-    if (countdown > 0) return
-    setCountdown(60)
+    if (countdown > 0 || state.isBlocked) return
+    
+    const resendCount = state.phase === 'phone' ? state.phoneResendCount : state.emailResendCount
+    
+    if (resendCount >= MAX_RESEND) {
+      setErrorMessage('Ya has solicitado el reenvío del código. Por favor espera a que expire.')
+      setShowError(true)
+      setTimeout(() => setShowError(false), 4000)
+      return
+    }
+
+    setState(prev => ({
+      ...prev,
+      [state.phase === 'phone' ? 'phoneResendCount' : 'emailResendCount']: resendCount + 1
+    }))
+    
+    setCountdown(OTP_EXPIRY_TIME)
     setShowToast(true)
     setTimeout(() => setShowToast(false), 3000)
   }
 
-  const phaseConfig = phase === 'email' ? {
-    icon: 'mail',
-    title: 'Verifica tu correo electrónico',
-    target: maskEmail(userData.email),
-    successText: 'Correo verificado'
-  } : {
+  const handleSubmit = async () => {
+    if (!state.phoneVerified || !state.emailVerified || isSubmitting) return
+
+    setIsSubmitting(true)
+
+    // Simular envío de formulario
+    await new Promise(resolve => setTimeout(resolve, 1500))
+
+    // En producción, enviar los datos al backend aquí
+    // Si es exitoso:
+    sessionStorage.removeItem('spidi_verification_state')
+    localStorage.removeItem('spidi_registro_cache')
+    router.push('/registro/confirmacion')
+  }
+
+  if (isDuplicateContact) {
+    return (
+      <div className="reg-page">
+        <nav className="navbar">
+          <div className="navbar__inner">
+            <Link href="/" className="navbar__logo" aria-label="SPIDI inicio">
+              <SpidiLogo />
+            </Link>
+          </div>
+        </nav>
+        <div className="reg-container" style={{paddingTop: '80px'}}>
+          <div className="reg-card" style={{textAlign: 'center', padding: '48px 32px'}}>
+            <div style={{fontSize: '64px', color: '#ff9800', marginBottom: '16px'}}>
+              <span className="icon">warning</span>
+            </div>
+            <h2 style={{marginBottom: '16px'}}>Datos ya registrados</h2>
+            <p style={{marginBottom: '24px', color: '#666'}}>
+              Los datos de contacto han sido registrados previamente. Te sugerimos contactar al equipo de soporte.
+            </p>
+            <Link href="/" className="btn btn--primary">Volver al inicio</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const phaseConfig = state.phase === 'phone' ? {
     icon: 'phone_android',
     title: 'Verifica tu teléfono',
     target: maskPhone(userData.telefono),
     successText: 'Teléfono verificado'
-  }
+  } : state.phase === 'email' ? {
+    icon: 'mail',
+    title: 'Verifica tu correo electrónico',
+    target: maskEmail(userData.email),
+    successText: 'Correo verificado'
+  } : null
+
+  const currentResendCount = state.phase === 'phone' ? state.phoneResendCount : state.emailResendCount
+  const canResend = countdown === 0 && currentResendCount < MAX_RESEND && !state.isBlocked
 
   return (
     <div className="reg-page">
@@ -182,94 +359,154 @@ export default function VerificarPage() {
 
       <header className="reg-header">
         <h1 className="reg-header__title">Verifica tu identidad</h1>
-        <p className="reg-header__subtitle">Ingresa los códigos que enviamos a tu correo y teléfono</p>
+        <p className="reg-header__subtitle">
+          {state.phase === 'completed' 
+            ? 'Verificación completada' 
+            : 'Ingresa los códigos que enviamos a tu teléfono y correo'}
+        </p>
       </header>
 
       <div className="reg-container">
         <div className="reg-card">
-          {/* Phase indicator */}
-          <div className="verify-steps">
-            <span className={`verify-step ${phase === 'email' ? 'active' : 'done'}`}>
-              <span className="icon">mail</span> Correo
-            </span>
-            <span className="verify-step-divider">&mdash;</span>
-            <span className={`verify-step ${phase === 'phone' ? 'active' : ''}`}>
-              <span className="icon">phone_android</span> Teléfono
-            </span>
-          </div>
+          {state.phase !== 'completed' && (
+            <>
+              {/* Phase indicator */}
+              <div className="verify-steps">
+                <span className={`verify-step ${state.phase === 'phone' ? 'active' : state.phoneVerified ? 'done' : ''}`}>
+                  <span className="icon">phone_android</span> Teléfono
+                </span>
+                <span className="verify-step-divider">&mdash;</span>
+                <span className={`verify-step ${state.phase === 'email' ? 'active' : state.emailVerified ? 'done' : ''}`}>
+                  <span className="icon">mail</span> Correo
+                </span>
+              </div>
 
-          {/* Verify content */}
-          <div style={{display: showSuccess ? 'none' : 'block'}}>
-            <div className="verify-icon">
-              <span className="icon">{phaseConfig.icon}</span>
-            </div>
-            <h2 className="verify-title">{phaseConfig.title}</h2>
-            <p className="verify-desc">
-              Enviamos un código de 6 dígitos a <strong>{phaseConfig.target}</strong>
-            </p>
+              {/* Verify content */}
+              {phaseConfig && (
+                <div style={{display: showSuccess ? 'none' : 'block'}}>
+                  <div className="verify-icon">
+                    <span className="icon">{phaseConfig.icon}</span>
+                  </div>
+                  <h2 className="verify-title">{phaseConfig.title}</h2>
+                  <p className="verify-desc">
+                    Enviamos un código de 6 dígitos a <strong>{phaseConfig.target}</strong>
+                  </p>
 
-            <div className="otp-group">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={inputRefs[index]}
-                  className={`otp-input ${showError ? 'error' : ''} ${digit ? 'success' : ''}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={index === 0 ? handlePaste : undefined}
-                  onFocus={() => inputRefs[index].current?.select()}
-                  aria-label={`Dígito ${index + 1} de 6`}
-                />
-              ))}
-            </div>
+                  <div className="otp-group">
+                    {otp.map((digit, index) => (
+                      <input
+                        key={index}
+                        ref={inputRefs[index]}
+                        className={`otp-input ${showError ? 'error' : ''} ${digit ? 'success' : ''}`}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        onPaste={index === 0 ? handlePaste : undefined}
+                        onFocus={() => inputRefs[index].current?.select()}
+                        aria-label={`Dígito ${index + 1} de 6`}
+                        disabled={state.isBlocked}
+                      />
+                    ))}
+                  </div>
 
-            <div className={`verify-error ${showError ? 'visible' : ''}`}>
-              <span className="icon" style={{fontSize: '16px'}}>error</span>
-              Código incorrecto. Intenta de nuevo.
-            </div>
+                  <div className={`verify-error ${showError ? 'visible' : ''}`}>
+                    <span className="icon" style={{fontSize: '16px'}}>error</span>
+                    {errorMessage}
+                  </div>
 
-            <button 
-              type="button" 
-              className="btn btn--primary btn--lg btn--full" 
-              onClick={() => handleVerify()}
-              disabled={isVerifying}
-            >
-              {isVerifying ? (
-                <>
-                  <div style={{
-                    width: '20px', 
-                    height: '20px', 
-                    border: '3px solid var(--color-primary-subtle)', 
-                    borderTopColor: 'var(--color-accent)', 
-                    borderRadius: '50%', 
-                    animation: 'spin 0.8s linear infinite',
-                    margin: 0
-                  }}></div>
-                  Verificando...
-                </>
-              ) : 'Verificar código'}
-            </button>
+                  <button 
+                    type="button" 
+                    className="btn btn--primary btn--lg btn--full" 
+                    onClick={() => handleVerify()}
+                    disabled={isVerifying || state.isBlocked}
+                  >
+                    {isVerifying ? (
+                      <>
+                        <div style={{
+                          width: '20px', 
+                          height: '20px', 
+                          border: '3px solid var(--color-primary-subtle)', 
+                          borderTopColor: 'var(--color-accent)', 
+                          borderRadius: '50%', 
+                          animation: 'spin 0.8s linear infinite',
+                          margin: 0
+                        }}></div>
+                        Verificando...
+                      </>
+                    ) : 'Verificar código'}
+                  </button>
 
-            <p className="verify-resend">
-              ¿No recibiste el código?{' '}
-              <button type="button" onClick={handleResend} disabled={countdown > 0}>
-                {countdown > 0 ? `Reenviar código (${countdown}s)` : 'Reenviar código'}
+                  <p className="verify-resend">
+                    {countdown > 0 ? (
+                      <>Código expira en: <strong>{formatTime(countdown)}</strong></>
+                    ) : (
+                      <>
+                        ¿No recibiste el código?{' '}
+                        <button type="button" onClick={handleResend} disabled={!canResend}>
+                          {canResend ? 'Reenviar código' : currentResendCount >= MAX_RESEND ? 'Límite alcanzado' : 'Esperando...'}
+                        </button>
+                      </>
+                    )}
+                  </p>
+                  {currentResendCount > 0 && currentResendCount < MAX_RESEND && (
+                    <p style={{fontSize: '12px', color: '#666', textAlign: 'center', marginTop: '8px'}}>
+                      Reenvíos restantes: {MAX_RESEND - currentResendCount}
+                    </p>
+                  )}
+                  <p className={`verify-toast ${showToast ? 'visible' : ''}`}>Código reenviado</p>
+                </div>
+              )}
+
+              {/* Success state */}
+              <div style={{display: showSuccess ? 'block' : 'none', textAlign: 'center', padding: '32px 0'}}>
+                <div className="verify-success-icon">
+                  <span className="icon">check</span>
+                </div>
+                <p className="verify-success-text">{phaseConfig?.successText}</p>
+              </div>
+            </>
+          )}
+
+          {/* Completed state */}
+          {state.phase === 'completed' && (
+            <div style={{textAlign: 'center', padding: '32px 0'}}>
+              <div className="verify-success-icon" style={{marginBottom: '24px'}}>
+                <span className="icon">check_circle</span>
+              </div>
+              <h2 style={{marginBottom: '8px', color: 'var(--color-text)'}}>¡Verificación completada!</h2>
+              <p style={{marginBottom: '32px', color: '#666'}}>
+                Teléfono y correo verificados correctamente
+              </p>
+              <button 
+                type="button" 
+                className="btn btn--primary btn--lg" 
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div style={{
+                      width: '20px', 
+                      height: '20px', 
+                      border: '3px solid var(--color-primary-subtle)', 
+                      borderTopColor: 'white', 
+                      borderRadius: '50%', 
+                      animation: 'spin 0.8s linear infinite',
+                      margin: 0
+                    }}></div>
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    Enviar <span className="icon" style={{fontSize: '20px'}}>send</span>
+                  </>
+                )}
               </button>
-            </p>
-            <p className={`verify-toast ${showToast ? 'visible' : ''}`}>Código reenviado</p>
-          </div>
-
-          {/* Success state */}
-          <div style={{display: showSuccess ? 'block' : 'none', textAlign: 'center', padding: '32px 0'}}>
-            <div className="verify-success-icon">
-              <span className="icon">check</span>
             </div>
-            <p className="verify-success-text">{phaseConfig.successText}</p>
-          </div>
+          )}
         </div>
       </div>
 
