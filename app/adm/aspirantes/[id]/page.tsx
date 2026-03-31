@@ -32,7 +32,8 @@ import {
   Loader2,
   Camera,
   Send,
-  X
+  X,
+  Info
 } from "lucide-react"
 
 const moduleKey = "ASPIRANTES"
@@ -175,15 +176,33 @@ const DOCUMENTOS_REQUERIDOS = [
 ]
 
 const TIENDAS = [
-  { value: "heb-cumbres", label: "HEB Cumbres" },
-  { value: "heb-lincoln", label: "HEB Lincoln" },
-  { value: "mitienda-san-nicolas", label: "Mi Tienda San Nicolás" },
+  { value: "heb-cumbres", label: "HEB Cumbres", ciudad: "Monterrey" },
+  { value: "heb-lincoln", label: "HEB Lincoln", ciudad: "Monterrey" },
+  { value: "heb-valle", label: "HEB Valle", ciudad: "Monterrey" },
+  { value: "heb-cumbres-elite", label: "HEB Cumbres Élite", ciudad: "Monterrey" },
+  { value: "mitienda-san-nicolas", label: "Mi Tienda San Nicolás", ciudad: "San Nicolás de los Garza" },
+  { value: "mitienda-guadalupe", label: "Mi Tienda Guadalupe", ciudad: "Guadalupe" },
 ]
 
-const HORARIOS = [
-  { value: "matutino", label: "Matutino 7:00 - 15:00", inicio: "7:00", fin: "15:00" },
-  { value: "vespertino", label: "Vespertino 14:00 - 22:00", inicio: "14:00", fin: "22:00" },
-  { value: "mixto", label: "Mixto 10:00 - 18:00", inicio: "10:00", fin: "18:00" },
+// Horarios disponibles: cada hora desde 6AM hasta 10PM
+const HORARIOS_DISPONIBLES = [
+  { value: "06:00", label: "06:00 AM", hora: 6 },
+  { value: "07:00", label: "07:00 AM", hora: 7 },
+  { value: "08:00", label: "08:00 AM", hora: 8 },
+  { value: "09:00", label: "09:00 AM", hora: 9 },
+  { value: "10:00", label: "10:00 AM", hora: 10 },
+  { value: "11:00", label: "11:00 AM", hora: 11 },
+  { value: "12:00", label: "12:00 PM", hora: 12 },
+  { value: "13:00", label: "01:00 PM", hora: 13 },
+  { value: "14:00", label: "02:00 PM", hora: 14 },
+  { value: "15:00", label: "03:00 PM", hora: 15 },
+  { value: "16:00", label: "04:00 PM", hora: 16 },
+  { value: "17:00", label: "05:00 PM", hora: 17 },
+  { value: "18:00", label: "06:00 PM", hora: 18 },
+  { value: "19:00", label: "07:00 PM", hora: 19 },
+  { value: "20:00", label: "08:00 PM", hora: 20 },
+  { value: "21:00", label: "09:00 PM", hora: 21 },
+  { value: "22:00", label: "10:00 PM", hora: 22 },
 ]
 
 const MENSAJE_PROPUESTA = "Tenemos una propuesta solo para ti…"
@@ -315,7 +334,8 @@ export default function AspiranteDetallePage() {
   const [propuestas, setPropuestas] = useState<Propuesta[]>([])
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false)
   const [selectedTienda, setSelectedTienda] = useState("")
-  const [selectedHorario, setSelectedHorario] = useState("")
+  const [horaEntrada, setHoraEntrada] = useState("")
+  const [horaSalida, setHoraSalida] = useState("")
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState("")
   const [viewerModalOpen, setViewerModalOpen] = useState(false)
@@ -583,12 +603,19 @@ export default function AspiranteDetallePage() {
   }
   
   const handleEnviarPropuesta = () => {
-    if (!selectedTienda || !selectedHorario || !aspirante) return
+    if (!selectedTienda || !horaEntrada || !horaSalida || !aspirante) return
     
     const tienda = TIENDAS.find(t => t.value === selectedTienda)
-    const horario = HORARIOS.find(h => h.value === selectedHorario)
     
-    if (!tienda || !horario) return
+    if (!tienda) return
+    
+    // Validar que los horarios sean válidos
+    const horaEntradaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaEntrada)?.hora || 0
+    const horaSalidaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaSalida)?.hora || 0
+    if (horaSalidaNum <= horaEntradaNum) {
+      alert("⚠️ La hora de salida debe ser posterior a la hora de entrada")
+      return
+    }
     
     // Simular alertas dummy (verificaciones)
     const hasActivePropuesta = propuestas.some(p => p.estado === "Activa")
@@ -598,10 +625,13 @@ export default function AspiranteDetallePage() {
     }
     
     // Crear nueva propuesta
+    const horaEntradaLabel = HORARIOS_DISPONIBLES.find(h => h.value === horaEntrada)?.label || horaEntrada
+    const horaSalidaLabel = HORARIOS_DISPONIBLES.find(h => h.value === horaSalida)?.label || horaSalida
+    
     const nuevaPropuesta: Propuesta = {
       id: `prop-${Date.now()}`,
       tienda: tienda.label,
-      horario: `${horario.inicio} - ${horario.fin}`,
+      horario: `${horaEntradaLabel} - ${horaSalidaLabel}`,
       fechaEnvio: new Date().toLocaleString("es-MX", { 
         year: "numeric",
         month: "2-digit", 
@@ -631,7 +661,8 @@ export default function AspiranteDetallePage() {
     // Cerrar modal y resetear
     setIsProposalModalOpen(false)
     setSelectedTienda("")
-    setSelectedHorario("")
+    setHoraEntrada("")
+    setHoraSalida("")
   }
   
   // Función mock para simular aceptar/rechazar propuesta (solo para pruebas)
@@ -697,6 +728,27 @@ export default function AspiranteDetallePage() {
 
     return documentosValidados
   }, [propuestas, isRequiredComplete, documentos])
+  
+  // Filtrar tiendas por ciudad del aspirante
+  const tiendasFiltradas = useMemo(() => {
+    if (!aspirante) return []
+    return TIENDAS.filter(tienda => tienda.ciudad === aspirante.ciudad)
+  }, [aspirante])
+  
+  // Filtrar horarios de salida según hora de entrada
+  const horariosDisponiblesSalida = useMemo(() => {
+    if (!horaEntrada) return HORARIOS_DISPONIBLES
+    const horaEntradaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaEntrada)?.hora || 0
+    return HORARIOS_DISPONIBLES.filter(h => h.hora > horaEntradaNum)
+  }, [horaEntrada])
+  
+  // Validar horarios seleccionados
+  const horarioValido = useMemo(() => {
+    if (!horaEntrada || !horaSalida) return false
+    const horaEntradaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaEntrada)?.hora || 0
+    const horaSalidaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaSalida)?.hora || 0
+    return horaSalidaNum > horaEntradaNum
+  }, [horaEntrada, horaSalida])
   
   const formatTimeRemaining = (ms: number) => {
     const hours = Math.floor(ms / (1000 * 60 * 60))
@@ -1490,9 +1542,7 @@ export default function AspiranteDetallePage() {
                         <p className="text-sm font-medium text-foreground truncate">{documento.label}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           {getEstadoDocIcon(documento.estatus)}
-                          <Badge variant={getEstadoDocBadgeVariant(documento.estatus)} className="text-[10px] h-5 px-1.5">
-                            {documento.estatus}
-                          </Badge>
+                          <span className="text-[10px] font-medium">{documento.estatus}</span>
                         </div>
                       </div>
                     </div>
@@ -1500,17 +1550,16 @@ export default function AspiranteDetallePage() {
                     <div className="flex items-end gap-2 min-w-0">
                       {doc.tipo !== "nss" && doc.tipo !== "contrato" && doc.tipo !== "cuentaBancaria" && (
                         <div className="flex flex-col gap-1 flex-1 min-w-0">
-                          <Label htmlFor={`vigencia-${doc.tipo}`} className="text-[10px] text-muted-foreground">
-                            Vigencia
-                          </Label>
-                          <Input
-                            id={`vigencia-${doc.tipo}`}
-                            type="date"
-                            value={documento.fechaVigencia || ""}
-                            onChange={(e) => handleDocVigenciaChange(doc.tipo, e.target.value)}
-                            className="h-8 text-xs w-full bg-muted"
-                            disabled
-                          />
+                          <span className="text-[10px] text-muted-foreground">Vigencia</span>
+                          <p className="text-xs text-foreground font-medium">
+                            {documento.fechaVigencia 
+                              ? new Date(documento.fechaVigencia).toLocaleDateString('es-MX', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) 
+                              : '—'}
+                          </p>
                         </div>
                       )}
 
@@ -1567,7 +1616,7 @@ export default function AspiranteDetallePage() {
                 <Sheet open={isProposalModalOpen} onOpenChange={setIsProposalModalOpen}>
                   <SheetTrigger asChild>
                     <Button
-                      disabled={!canSendProposal}
+                      disabled={!canSendProposal || tiendasFiltradas.length === 0}
                       size="sm"
                       className="w-full sm:w-auto"
                     >
@@ -1584,6 +1633,21 @@ export default function AspiranteDetallePage() {
                   </SheetHeader>
                   
                   <div className="space-y-6 mt-6">
+                    {/* Información de ciudad */}
+                    {tiendasFiltradas.length === 0 ? (
+                      <Alert>
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          No hay tiendas disponibles en {aspirante?.ciudad}. El aspirante debe estar asignado a una ciudad con tiendas disponibles.
+                        </AlertDescription>
+                      </Alert>
+                    ) : (
+                      <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md">
+                        <Info className="h-4 w-4 inline mr-2" />
+                        Mostrando {tiendasFiltradas.length} tienda(s) disponibles en <strong>{aspirante?.ciudad}</strong>
+                      </div>
+                    )}
+                    
                     {/* Selects */}
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -1593,7 +1657,7 @@ export default function AspiranteDetallePage() {
                             <SelectValue placeholder="Selecciona tienda ▼" />
                           </SelectTrigger>
                           <SelectContent>
-                            {TIENDAS.map(tienda => (
+                            {tiendasFiltradas.map(tienda => (
                               <SelectItem key={tienda.value} value={tienda.value}>
                                 {tienda.label}
                               </SelectItem>
@@ -1602,31 +1666,85 @@ export default function AspiranteDetallePage() {
                         </Select>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="horario">Horario</Label>
-                        <Select value={selectedHorario} onValueChange={setSelectedHorario}>
-                          <SelectTrigger id="horario">
-                            <SelectValue placeholder="Selecciona horario ▼" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {HORARIOS.map(horario => (
-                              <SelectItem key={horario.value} value={horario.value}>
-                                {horario.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {/* Horarios en grid */}
+                      <div className="border rounded-lg p-4 bg-muted/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">Horario de Trabajo</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="hora-entrada" className="text-xs text-muted-foreground">Hora de Entrada</Label>
+                            <Select 
+                              value={horaEntrada} 
+                              onValueChange={(value) => {
+                                setHoraEntrada(value)
+                                // Limpiar hora salida si ya no es válida
+                                if (horaSalida) {
+                                  const horaEntradaNum = HORARIOS_DISPONIBLES.find(h => h.value === value)?.hora || 0
+                                  const horaSalidaNum = HORARIOS_DISPONIBLES.find(h => h.value === horaSalida)?.hora || 0
+                                  if (horaSalidaNum <= horaEntradaNum) {
+                                    setHoraSalida("")
+                                  }
+                                }
+                              }}
+                            >
+                              <SelectTrigger id="hora-entrada" className="bg-background">
+                                <SelectValue placeholder="Selecciona" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[300px] overflow-y-auto">
+                                {HORARIOS_DISPONIBLES.map(horario => (
+                                  <SelectItem key={horario.value} value={horario.value}>
+                                    {horario.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="hora-salida" className="text-xs text-muted-foreground">Hora de Salida</Label>
+                            <Select 
+                              value={horaSalida} 
+                              onValueChange={setHoraSalida}
+                              disabled={!horaEntrada}
+                            >
+                              <SelectTrigger id="hora-salida" className="bg-background">
+                                <SelectValue placeholder={horaEntrada ? "Selecciona" : "Primero selecciona hora de entrada"} />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[300px] overflow-y-auto">
+                                {horariosDisponiblesSalida.map(horario => (
+                                  <SelectItem key={horario.value} value={horario.value}>
+                                    {horario.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        {/* Mensaje de validación */}
+                        {horaEntrada && horaSalida && !horarioValido && (
+                          <div className="mt-3 flex items-start gap-2 text-xs text-destructive">
+                            <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                            <span>La hora de salida debe ser posterior a la hora de entrada</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
                     {/* Preview del mensaje */}
-                    {selectedTienda && selectedHorario && (
-                      <div className="p-4 bg-muted rounded-md space-y-2">
-                        <Label>Vista previa del mensaje</Label>
-                        <div className="text-sm">
+                    {selectedTienda && horaEntrada && horaSalida && (
+                      <div className="p-4 border-2 border-primary/20 bg-primary/5 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <Label className="text-primary">Vista previa del mensaje</Label>
+                        </div>
+                        <div className="text-sm space-y-1 pl-6">
                           <p className="font-medium mb-2">{MENSAJE_PROPUESTA}</p>
-                          <p>Trabajarías en: <strong>{TIENDAS.find(t => t.value === selectedTienda)?.label}</strong></p>
-                          <p>Horario: <strong>{HORARIOS.find(h => h.value === selectedHorario)?.label}</strong></p>
+                          <p>📍 Trabajarías en: <strong>{tiendasFiltradas.find(t => t.value === selectedTienda)?.label}</strong></p>
+                          <p>🕐 Horario: <strong>{HORARIOS_DISPONIBLES.find(h => h.value === horaEntrada)?.label} - {HORARIOS_DISPONIBLES.find(h => h.value === horaSalida)?.label}</strong></p>
                         </div>
                       </div>
                     )}
@@ -1638,7 +1756,8 @@ export default function AspiranteDetallePage() {
                         onClick={() => {
                           setIsProposalModalOpen(false)
                           setSelectedTienda("")
-                          setSelectedHorario("")
+                          setHoraEntrada("")
+                          setHoraSalida("")
                         }}
                         className="flex-1"
                       >
@@ -1646,7 +1765,7 @@ export default function AspiranteDetallePage() {
                       </Button>
                       <Button
                         onClick={handleEnviarPropuesta}
-                        disabled={!selectedTienda || !selectedHorario}
+                        disabled={!selectedTienda || !horaEntrada || !horaSalida || !horarioValido}
                         className="flex-1"
                       >
                         <Send className="h-4 w-4 mr-2" />

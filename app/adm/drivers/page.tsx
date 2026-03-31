@@ -560,11 +560,11 @@ export default function DriversPage() {
   const getEstadoDriverBadge = (estado: EstadoDriver) => {
     switch (estado) {
       case "Habilitado":
-        return <Badge variant="default">{estado}</Badge>
+        return <Badge variant="outline" className="badge-activo">{estado}</Badge>
       case "Suspendido":
-        return <Badge variant="secondary">{estado}</Badge>
+        return <Badge variant="outline" className="badge-revision">{estado}</Badge>
       case "Deshabilitado":
-        return <Badge variant="outline">{estado}</Badge>
+        return <Badge variant="outline" className="badge-inactivo">{estado}</Badge>
     }
   }
 

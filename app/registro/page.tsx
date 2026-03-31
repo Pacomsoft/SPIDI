@@ -515,7 +515,7 @@ export default function RegistroWizardPage() {
       case 2: return 'Verifica tu teléfono'
       case 3: return 'Verifica tu email'
       case 4: return 'Confirma tu información'
-      case 5: return '¡Registro exitoso!'
+      case 5: return ''
       default: return ''
     }
   }
@@ -530,7 +530,7 @@ export default function RegistroWizardPage() {
         ? `Se envió un código de 6 dígitos al correo <strong>${formData.email}</strong>`
         : `Se enviará un código de 6 dígitos al correo <strong>${formData.email}</strong>`
       case 4: return 'Revisa tu información antes de enviar'
-      case 5: return `Tu número de solicitud es: <strong>${solicitudNum}</strong>`
+      case 5: return ''
       default: return ''
     }
   }
@@ -554,8 +554,7 @@ export default function RegistroWizardPage() {
 
       {/* Form Container */}
       <div className="reg-container">
-        <div className="reg-card">
-          {/* Progress Steps */}
+        <div className={`reg-card ${currentStep === 5 ? 'reg-card--confirm' : ''}`}>
           {currentStep < 5 && (
             <div className="verify-steps">
               <div className={`verify-step ${currentStep === 1 ? 'active' : currentStep > 1 ? 'done' : ''}`}>
@@ -581,6 +580,7 @@ export default function RegistroWizardPage() {
           )}
 
           {/* Card Header */}
+          {currentStep < 5 && (
           <div className="reg-card__header">
             <div className="reg-card__icon">
               <span className="icon">
@@ -604,6 +604,7 @@ export default function RegistroWizardPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Step Content */}
           <div className="wizard-content">
@@ -614,35 +615,20 @@ export default function RegistroWizardPage() {
                 <div className="form-section">
                   <h3 className="form-section__title">Datos personales</h3>
                   <div className="form-group__row">
-                    <div className={`form-group ${errors.firstName ? 'form-group--error' : ''} ${validFields.has('firstName') && !errors.firstName ? 'form-group--success' : ''}`}>
-                      <label className="form-group__label" htmlFor="firstName">Primer nombre<span className="req">*</span></label>
+                    <div className={`form-group form-group--full-width ${errors.firstName ? 'form-group--error' : ''} ${validFields.has('firstName') && !errors.firstName ? 'form-group--success' : ''}`}>
+                      <label className="form-group__label" htmlFor="firstName">Nombre(s)<span className="req">*</span></label>
                       <input 
                         className="form-input" 
                         type="text" 
                         id="firstName" 
                         placeholder="Ej. Juan" 
-                        maxLength={100}
+                        maxLength={255}
                         autoComplete="given-name"
                         value={formData.firstName}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         onBlur={() => handleBlur('firstName')}
                       />
                       {errors.firstName && <div className="form-group__error"><span className="icon">error</span><span>{errors.firstName}</span></div>}
-                    </div>
-                    <div className={`form-group ${errors.middleName ? 'form-group--error' : ''} ${validFields.has('middleName') && !errors.middleName ? 'form-group--success' : ''}`}>
-                      <label className="form-group__label" htmlFor="middleName">Segundo nombre</label>
-                      <input 
-                        className="form-input" 
-                        type="text" 
-                        id="middleName" 
-                        placeholder="Ej. Carlos (opcional)" 
-                        maxLength={100}
-                        autoComplete="additional-name"
-                        value={formData.middleName}
-                        onChange={(e) => handleInputChange('middleName', e.target.value)}
-                        onBlur={() => handleBlur('middleName')}
-                      />
-                      {errors.middleName && <div className="form-group__error"><span className="icon">error</span><span>{errors.middleName}</span></div>}
                     </div>
                   </div>
                   <div className="form-group__row">
@@ -653,7 +639,7 @@ export default function RegistroWizardPage() {
                         type="text" 
                         id="paternalSurname" 
                         placeholder="Ej. García" 
-                        maxLength={100}
+                        maxLength={255}
                         autoComplete="family-name"
                         value={formData.paternalSurname}
                         onChange={(e) => handleInputChange('paternalSurname', e.target.value)}
@@ -668,7 +654,7 @@ export default function RegistroWizardPage() {
                         type="text" 
                         id="maternalSurname" 
                         placeholder="Ej. López (opcional)" 
-                        maxLength={100}
+                        maxLength={255}
                         autoComplete="additional-name"
                         value={formData.maternalSurname}
                         onChange={(e) => handleInputChange('maternalSurname', e.target.value)}
@@ -1082,18 +1068,99 @@ export default function RegistroWizardPage() {
             {/* STEP 5: Confirmación */}
             {currentStep === 5 && (
               <div className="confirm-content">
-                <div className="verify-icon" style={{background: '#E6F4ED', width: '80px', height: '80px', margin: '0 auto 24px'}}>
-                  <span className="icon" style={{color: '#1A7F4B', fontSize: '64px'}}>check_circle</span>
+                <div className="confirm__icon">
+                  <span className="icon">check_circle</span>
                 </div>
-                <div style={{textAlign: 'center', maxWidth: '400px', margin: '0 auto'}}>
-                  <p style={{fontSize: '16px', color: '#2A3545', marginBottom: '16px'}}>
-                    Recibirás un correo de confirmación en <strong>{formData.email}</strong> con los próximos pasos.
-                  </p>
-                  <p style={{fontSize: '14px', color: '#5C6E84', marginBottom: '32px'}}>
-                    Nuestro equipo revisará tu solicitud en las próximas <strong>24-48 horas</strong>.
-                  </p>
-                  <Link href="/" className="btn btn--primary btn--lg btn--full">
-                    Regresar al inicio
+                <h1 className="confirm__title">¡Tu solicitud fue enviada exitosamente!</h1>
+                <p className="confirm__solicitud">
+                  Número de solicitud: <strong>{solicitudNum}</strong>
+                </p>
+                <p className="confirm__desc">
+                  Hemos recibido tu solicitud y la estamos revisando. Recibirás un correo de confirmación en los próximos minutos en el correo que registraste.
+                </p>
+
+                {/* Timeline */}
+                <div className="timeline2">
+                  <h4>Próximos pasos</h4>
+                  <div className="timeline2__item">
+                    <div className="timeline2__dot timeline2__dot--done">
+                      <span className="icon" style={{fontSize: '16px'}}>check</span>
+                    </div>
+                    <div className="timeline2__content">
+                      <div className="timeline2__day">Hoy</div>
+                      <div className="timeline2__text">Solicitud recibida — en revisión</div>
+                    </div>
+                  </div>
+                  <div className="timeline2__item">
+                    <div className="timeline2__dot timeline2__dot--pending"></div>
+                    <div className="timeline2__content">
+                      <div className="timeline2__day">Días 1-2</div>
+                      <div className="timeline2__text">Verificación de documentos</div>
+                    </div>
+                  </div>
+                  <div className="timeline2__item">
+                    <div className="timeline2__dot timeline2__dot--pending"></div>
+                    <div className="timeline2__content">
+                      <div className="timeline2__day">Días 3-4</div>
+                      <div className="timeline2__text">Verificación de antecedentes</div>
+                    </div>
+                  </div>
+                  <div className="timeline2__item">
+                    <div className="timeline2__dot timeline2__dot--pending"></div>
+                    <div className="timeline2__content">
+                      <div className="timeline2__day">Días 5-6</div>
+                      <div className="timeline2__text">Entrenamiento online</div>
+                    </div>
+                  </div>
+                  <div className="timeline2__item">
+                    <div className="timeline2__dot timeline2__dot--pending"></div>
+                    <div className="timeline2__content">
+                      <div className="timeline2__day">Día 7</div>
+                      <div className="timeline2__text">¡Primera entrega!</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info cards */}
+                <div className="info-cards">
+                  <div className="info-card">
+                    <div className="info-card__icon">
+                      <span className="icon">mail</span>
+                    </div>
+                    <h5>Revisa tu correo</h5>
+                    <p>Te enviamos instrucciones detalladas a tu correo registrado</p>
+                  </div>
+                  <div className="info-card">
+                    <div className="info-card__icon">
+                      <span className="icon">phone_android</span>
+                    </div>
+                    <h5>Descarga la app</h5>
+                    <p>Mientras tanto, descarga la app SPIDI para estar listo</p>
+                    <div className="app-badges">
+                      <span className="app-badge">
+                        <span className="icon">apple</span> App Store
+                      </span>
+                      <span className="app-badge">
+                        <span className="icon">shop</span> Google Play
+                      </span>
+                    </div>
+                  </div>
+                  <div className="info-card">
+                    <div className="info-card__icon">
+                      <span className="icon">support_agent</span>
+                    </div>
+                    <h5>¿Tienes dudas?</h5>
+                    <p>Estamos disponibles de Lun-Sab 8am-8pm</p>
+                    <button className="btn btn--secondary" style={{fontSize: '13px', padding: '8px 16px', borderRadius: '50px', marginTop: '12px'}}>
+                      <span className="icon" style={{fontSize: '16px'}}>chat</span> Chatear con soporte
+                    </button>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="confirm__cta">
+                  <Link href="/" className="btn btn--secondary btn--lg">
+                    <span className="icon" style={{fontSize: '20px'}}>home</span> Volver al inicio
                   </Link>
                 </div>
               </div>

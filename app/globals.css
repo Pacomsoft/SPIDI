@@ -230,6 +230,80 @@
     @apply text-foreground min-h-[200px];
   }
 
+  /* Material Symbols configuration */
+  .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-weight: 600;
+    font-style: normal;
+    font-size: 1rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: 'liga';
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    font-variation-settings: 
+      'FILL' 1,
+      'wght' 600,
+      'GRAD' 87.5,
+      'opsz' 30;
+  }
+
+  /* Badge Status Classes - No usar colores de accent (rojo/azul) */
+  .badge-aprobado {
+    @apply bg-green-100 text-green-800 border-green-300 hover:bg-green-100;
+  }
+
+  .badge-rechazado {
+    @apply bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100;
+  }
+
+  .badge-revision {
+    @apply bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-100;
+  }
+
+  .badge-propuesta {
+    @apply bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-100;
+  }
+
+  .badge-pendiente {
+    @apply bg-slate-100 text-slate-800 border-slate-300 hover:bg-slate-100;
+  }
+
+  .badge-activo {
+    @apply bg-green-100 text-green-800 border-green-300 hover:bg-green-100;
+  }
+
+  .badge-inactivo {
+    @apply bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-100;
+  }
+
+  .badge-prueba {
+    @apply bg-purple-50 text-purple-700 border-purple-300;
+  }
+
+  /* Dots para documentos */
+  .dot-completo {
+    @apply bg-green-500;
+  }
+
+  .dot-pendiente {
+    @apply bg-gray-300;
+  }
+
+  .dot-rechazado {
+    @apply bg-slate-500;
+  }
+
+  .dot-revision {
+    @apply bg-amber-500;
+  }
+}
+
   .ql-editor.ql-blank::before {
     @apply text-muted-foreground;
   }
@@ -245,4 +319,3 @@
   .dark .ql-picker-label {
     color: hsl(var(--foreground));
   }
-}

@@ -155,6 +155,28 @@ const matchTextIntelligent = (text: string, searchTerm: string): boolean => {
   return false
 }
 
+const getStatusBadgeClass = (status: ComplaintStatus) => {
+  switch (status) {
+    case "Nueva":
+      return "badge-pendiente"
+    case "En proceso":
+      return "badge-revision"
+    case "Resuelta":
+      return "badge-aprobado"
+  }
+}
+
+const getTypeBadgeClass = (type: ComplaintType) => {
+  switch (type) {
+    case "Queja":
+      return "badge-rechazado"
+    case "Aclaración":
+      return "badge-revision"
+    case "Comentario":
+      return "badge-pendiente"
+  }
+}
+
 const getStatusBadgeVariant = (status: ComplaintStatus) => {
   switch (status) {
     case "Nueva":
@@ -847,14 +869,14 @@ export default function ComplaintsPage() {
                         <TableCell className="font-medium">{complaint.id}</TableCell>
                         <TableCell>{complaint.driverName}</TableCell>
                         <TableCell>
-                          <Badge variant={getTypeBadgeVariant(complaint.type)}>
+                          <Badge variant="outline" className={getTypeBadgeClass(complaint.type)}>
                             {complaint.type}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatDate(complaint.receivedAt)}</TableCell>
                         <TableCell>{formatDate(complaint.updatedAt)}</TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(complaint.status)}>
+                          <Badge variant="outline" className={getStatusBadgeClass(complaint.status)}>
                             {complaint.status}
                           </Badge>
                         </TableCell>

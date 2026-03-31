@@ -20,6 +20,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
@@ -30,7 +37,11 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Car,
+  FileText,
+  X
 } from "lucide-react"
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
@@ -41,6 +52,12 @@ const moduleKey = "ASPIRANTES"
 // Tipos
 type EstadoAplicacion = "Pendiente" | "En Revisión" | "Propuesta enviada" | "Aprobado" | "Rechazado"
 type EstadoDocumentacion = "Pendiente" | "Incompleto" | "Completo" | "Revisión"
+type EstadoDocumento = "completo" | "pendiente" | "rechazado" | "revision"
+
+interface Documento {
+  nombre: string
+  estado: EstadoDocumento
+}
 
 interface Aspirante {
   id: string
@@ -53,10 +70,46 @@ interface Aspirante {
   fecha: Date
   estadoAplicacion: EstadoAplicacion
   estadoDocumentacion: EstadoDocumentacion
+  documentos: Documento[]
+  vehiculo?: {
+    marca: string
+    modelo: string
+    año: number
+    color: string
+  }
+  notas?: string
 }
 
 // Datos dummy (40 registros)
 const ciudades = ["Monterrey", "Guadalupe", "San Pedro", "Apodaca", "Escobedo", "Santa Catarina"]
+const nombresDocumentos = [
+  "INE",
+  "Comprobante Domicilio",
+  "RFC",
+  "Licencia Conducir",
+  "NSS",
+  "Acta Nacimiento"
+]
+const marcasVehiculos = ["Toyota", "Nissan", "Chevrolet", "Honda", "Mazda", "Ford"]
+const modelosVehiculos = ["Sedan", "Hatchback", "SUV", "Pickup"]
+const coloresVehiculos = ["Blanco", "Negro", "Plata", "Gris", "Rojo", "Azul"]
+const notasEjemplo = [
+  "Candidato prometedor, buena actitud",
+  "Experiencia previa como repartidor",
+  "Requiere seguimiento en documentación",
+  "Pendiente verificación de referencias",
+  "Cuenta con vehículo propio en buen estado",
+  ""
+]
+
+// Función para generar documentos aleatorios
+const generarDocumentos = (): Documento[] => {
+  const estados: EstadoDocumento[] = ["completo", "pendiente", "rechazado", "revision"]
+  return nombresDocumentos.map(nombre => ({
+    nombre,
+    estado: estados[Math.floor(Math.random() * estados.length)]
+  }))
+}
 const aspirantesData = [
   { nombre: "Juan", paterno: "Pérez", materno: "García" },
   { nombre: "María", paterno: "García", materno: "López" },
@@ -114,7 +167,15 @@ const generarDatosDummy = (): Aspirante[] => {
     ubicacion: ciudades[Math.floor(Math.random() * ciudades.length)],
     fecha: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000),
     estadoAplicacion: estadosAplicacion[Math.floor(Math.random() * estadosAplicacion.length)],
-    estadoDocumentacion: estadosDoc[Math.floor(Math.random() * estadosDoc.length)]
+    estadoDocumentacion: estadosDoc[Math.floor(Math.random() * estadosDoc.length)],
+    documentos: generarDocumentos(),
+    vehiculo: Math.random() > 0.3 ? {
+      marca: marcasVehiculos[Math.floor(Math.random() * marcasVehiculos.length)],
+      modelo: modelosVehiculos[Math.floor(Math.random() * modelosVehiculos.length)],
+      año: 2015 + Math.floor(Math.random() * 10),
+      color: coloresVehiculos[Math.floor(Math.random() * coloresVehiculos.length)]
+    } : undefined,
+    notas: notasEjemplo[Math.floor(Math.random() * notasEjemplo.length)]
   }))
   
   // Agregar aspirante de prueba con datos completos (ASP-9999)
@@ -128,7 +189,22 @@ const generarDatosDummy = (): Aspirante[] => {
     ubicacion: "Monterrey",
     fecha: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // Hace 5 días
     estadoAplicacion: "En Revisión",
-    estadoDocumentacion: "Completo"
+    estadoDocumentacion: "Completo",
+    documentos: [
+      { nombre: "INE", estado: "completo" },
+      { nombre: "Comprobante Domicilio", estado: "completo" },
+      { nombre: "RFC", estado: "completo" },
+      { nombre: "Licencia Conducir", estado: "completo" },
+      { nombre: "NSS", estado: "pendiente" },
+      { nombre: "Acta Nacimiento", estado: "revision" }
+    ],
+    vehiculo: {
+      marca: "Toyota",
+      modelo: "Sedan",
+      año: 2020,
+      color: "Blanco"
+    },
+    notas: "Candidato con excelente perfil. Experiencia previa de 3 años como repartidor. Cuenta con vehículo en buen estado."
   })
   
   return aspirantesGenerados
@@ -150,6 +226,8 @@ export default function AspirantesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(20)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedAspirante, setSelectedAspirante] = useState<Aspirante | null>(null)
 
   // Filtrado y ordenamiento
   const filteredAndSortedData = useMemo(() => {
@@ -291,23 +369,68 @@ export default function AspirantesPage() {
     link.click()
   }
 
-  const getBadgeVariant = (estado: EstadoAplicacion): "default" | "secondary" | "destructive" | "outline" => {
+  const getEstadoAplicacionClasses = (estado: EstadoAplicacion): string => {
     switch (estado) {
-      case "Aprobado": return "default"
-      case "Rechazado": return "destructive"
-      case "En Revisión": return "secondary"
-      case "Propuesta enviada": return "secondary"
-      default: return "outline"
+      case "Aprobado": 
+        return "badge-aprobado"
+      case "Rechazado": 
+        return "badge-rechazado"
+      case "En Revisión": 
+        return "badge-revision"
+      case "Propuesta enviada": 
+        return "badge-propuesta"
+      default: 
+        return "badge-pendiente"
     }
   }
 
-  const getDocBadgeVariant = (estado: EstadoDocumentacion): "default" | "secondary" | "destructive" | "outline" => {
-    switch (estado) {
-      case "Completo": return "default"
-      case "Pendiente": return "outline"
-      case "Incompleto": return "destructive"
-      default: return "secondary"
+  // Componente para visualizar documentos con dots
+  const DocumentosVisualizacion = ({ documentos }: { documentos: Documento[] }) => {
+    const completados = documentos.filter(d => d.estado === "completo").length
+    const total = documentos.length
+
+    const getColorDot = (estado: EstadoDocumento) => {
+      switch (estado) {
+        case "completo":
+          return "dot-completo"
+        case "pendiente":
+          return "dot-pendiente"
+        case "rechazado":
+          return "dot-rechazado"
+        case "revision":
+          return "dot-revision"
+      }
     }
+
+    const getLabel = (estado: EstadoDocumento) => {
+      switch (estado) {
+        case "completo":
+          return "Completo"
+        case "pendiente":
+          return "Pendiente"
+        case "rechazado":
+          return "Rechazado"
+        case "revision":
+          return "En revisión"
+      }
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        <div className="flex gap-1">
+          {documentos.map((doc, index) => (
+            <div
+              key={index}
+              className={`w-2 h-2 rounded-full ${getColorDot(doc.estado)} cursor-help`}
+              title={`${doc.nombre}: ${getLabel(doc.estado)}`}
+            />
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground font-medium">
+          {completados}/{total}
+        </span>
+      </div>
+    )
   }
 
   const SortIcon = ({ column }: { column: keyof Aspirante }) => {
@@ -418,7 +541,7 @@ export default function AspirantesPage() {
                         <SelectValue placeholder="Ubicación" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="todos">Todas</SelectItem>
+                        <SelectItem value="todos">Todas las ubicaciones</SelectItem>
                         {ciudades.map(ciudad => (
                           <SelectItem key={ciudad} value={ciudad}>{ciudad}</SelectItem>
                         ))}
@@ -440,7 +563,7 @@ export default function AspirantesPage() {
           <CardContent>
             {/* Tabla */}
             <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
-              <Table className="min-w-full">{" "}
+              <Table className="min-w-full">
                 <TableHeader className="bg-muted/40">
                   <TableRow>
                     <TableHead className="whitespace-nowrap">ID</TableHead>
@@ -489,8 +612,8 @@ export default function AspirantesPage() {
                         key={aspirante.id}
                         className="cursor-pointer hover:bg-accent transition-colors"
                         onClick={() => {
-                          setLoadingDetail(true)
-                          router.push(`/adm/aspirantes/${aspirante.id}`)
+                          setSelectedAspirante(aspirante)
+                          setDrawerOpen(true)
                         }}
                       >
                         <TableCell className="font-medium">{aspirante.id}</TableCell>
@@ -498,7 +621,7 @@ export default function AspirantesPage() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="whitespace-nowrap">{aspirante.nombre} {aspirante.apellidoPaterno} {aspirante.apellidoMaterno}</span>
                             {aspirante.id === "ASP-9999" && (
-                              <Badge variant="outline" className="text-xs bg-blue-50 border-blue-300 text-blue-700 whitespace-nowrap">
+                              <Badge variant="outline" className="text-xs badge-prueba whitespace-nowrap">
                                 🧪 PRUEBA
                               </Badge>
                             )}
@@ -508,14 +631,12 @@ export default function AspirantesPage() {
                         <TableCell className="whitespace-nowrap">{aspirante.ubicacion}</TableCell>
                         <TableCell className="whitespace-nowrap">{aspirante.fecha.toLocaleDateString('es-MX')}</TableCell>
                         <TableCell>
-                          <Badge variant={getBadgeVariant(aspirante.estadoAplicacion)} className="whitespace-nowrap">
+                          <Badge variant="outline" className={`whitespace-nowrap ${getEstadoAplicacionClasses(aspirante.estadoAplicacion)}`}>
                             {aspirante.estadoAplicacion}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getDocBadgeVariant(aspirante.estadoDocumentacion)} className="whitespace-nowrap">
-                            {aspirante.estadoDocumentacion}
-                          </Badge>
+                          <DocumentosVisualizacion documentos={aspirante.documentos} />
                         </TableCell>
                       </TableRow>
                     ))
@@ -584,6 +705,166 @@ export default function AspirantesPage() {
             </div>
           </div>
         )}
+
+        {/* Drawer de resumen rápido */}
+        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="flex items-center justify-between">
+                <span>Resumen - {selectedAspirante?.id}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </SheetTitle>
+              <SheetDescription>
+                Vista rápida del aspirante
+              </SheetDescription>
+            </SheetHeader>
+
+            {selectedAspirante && (
+              <div className="mt-6 space-y-6">
+                {/* Información Personal */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Información Personal</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Nombre:</span>
+                      <span className="font-medium">
+                        {selectedAspirante.nombre} {selectedAspirante.apellidoPaterno} {selectedAspirante.apellidoMaterno}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Teléfono:</span>
+                      <span className="font-medium">{selectedAspirante.telefono}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="font-medium text-xs">{selectedAspirante.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Ubicación:</span>
+                      <span className="font-medium">{selectedAspirante.ubicacion}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Fecha registro:</span>
+                      <span className="font-medium">{selectedAspirante.fecha.toLocaleDateString('es-MX')}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Estado */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Estado</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="outline" className={`${getEstadoAplicacionClasses(selectedAspirante.estadoAplicacion)}`}>
+                      {selectedAspirante.estadoAplicacion}
+                    </Badge>
+                    {selectedAspirante.id === "ASP-9999" && (
+                      <Badge variant="outline" className="text-xs badge-prueba">
+                        🧪 PRUEBA
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vehículo */}
+                {selectedAspirante.vehiculo && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Car className="h-5 w-5" />
+                      Vehículo
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Marca:</span>
+                        <span className="font-medium">{selectedAspirante.vehiculo.marca}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Modelo:</span>
+                        <span className="font-medium">{selectedAspirante.vehiculo.modelo}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Año:</span>
+                        <span className="font-medium">{selectedAspirante.vehiculo.año}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Color:</span>
+                        <span className="font-medium">{selectedAspirante.vehiculo.color}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documentos */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Documentación
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedAspirante.documentos.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between py-2 border-b last:border-0">
+                        <span className="text-sm">{doc.nombre}</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            doc.estado === "completo" ? "dot-completo" :
+                            doc.estado === "pendiente" ? "dot-pendiente" :
+                            doc.estado === "rechazado" ? "dot-rechazado" :
+                            "dot-revision"
+                          }`} />
+                          <span className="text-xs text-muted-foreground capitalize">
+                            {doc.estado === "completo" ? "Completo" :
+                             doc.estado === "pendiente" ? "Pendiente" :
+                             doc.estado === "rechazado" ? "Rechazado" :
+                             "En revisión"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="mt-3 pt-3 border-t">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">Progreso:</span>
+                        <span className="text-sm text-muted-foreground">
+                          {selectedAspirante.documentos.filter(d => d.estado === "completo").length}/{selectedAspirante.documentos.length} completos
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notas */}
+                {selectedAspirante.notas && (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Notas</h3>
+                    <p className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
+                      {selectedAspirante.notas}
+                    </p>
+                  </div>
+                )}
+
+                {/* Botón Ver Detalle Completo */}
+                <div className="pt-4 border-t">
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setDrawerOpen(false)
+                      setLoadingDetail(true)
+                      router.push(`/adm/aspirantes/${selectedAspirante.id}`)
+                    }}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Ver detalle completo
+                  </Button>
+                </div>
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </RoleGuard>
   )

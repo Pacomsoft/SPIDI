@@ -4,20 +4,9 @@ import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { authProvider } from "@/lib/auth"
 import { getAllowedModules, type ModuleKey, type Role } from "@/lib/roles"
-import {
-  Users,
-  Car,
-  CreditCard,
-  MessageSquare,
-  GraduationCap,
-  FileText,
-  LogOut,
-  User,
-  MoreVertical,
-  ChevronRight,
-  MessageCircle,
-} from "lucide-react"
 import * as Collapsible from "@radix-ui/react-collapsible"
+import { Icon } from "@/components/ui/icon"
+import { SpidiLogo } from "@/components/ui/spidi-logo"
 
 import {
   Sidebar,
@@ -48,40 +37,40 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 const menuItems = [
   {
     title: "Aspirantes",
-    icon: Users,
+    icon: "group",
     url: "/adm/aspirantes",
     moduleKey: "ASPIRANTES" as ModuleKey,
   },
   {
     title: "Drivers",
-    icon: Car,
+    icon: "directions_car",
     url: "/adm/drivers",
     moduleKey: "DRIVERS" as ModuleKey,
   },
-  {
-    title: "Pagos",
-    icon: CreditCard,
-    url: "/adm/pagos",
-    moduleKey: "PAGOS" as ModuleKey,
-  },
+  // {
+  //   title: "Pagos",
+  //   icon: "payments",
+  //   url: "/adm/pagos",
+  //   moduleKey: "PAGOS" as ModuleKey,
+  // },
   {
     title: "Comunicación",
-    icon: MessageSquare,
+    icon: "chat_bubble",
     url: "/adm/comunicacion",
     moduleKey: "COMUNICACION" as ModuleKey,
   },
-  {
-    title: "Capacitación",
-    icon: GraduationCap,
-    url: "/adm/capacitacion",
-    moduleKey: "CAPACITACION" as ModuleKey,
-  },
-  {
-    title: "Contratos",
-    icon: FileText,
-    url: "/adm/contratos",
-    moduleKey: "CONTRATOS" as ModuleKey,
-  },
+  // {
+  //   title: "Capacitación",
+  //   icon: "school",
+  //   url: "/adm/capacitacion",
+  //   moduleKey: "CAPACITACION" as ModuleKey,
+  // },
+  // {
+  //   title: "Contratos",
+  //   icon: "description",
+  //   url: "/adm/contratos",
+  //   moduleKey: "CONTRATOS" as ModuleKey,
+  // },
 ]
 
 export function AppSidebar() {
@@ -131,7 +120,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <GraduationCap className="size-4" />
+                <SpidiLogo size={20} />
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">SPIDI</span>
@@ -165,9 +154,9 @@ export function AppSidebar() {
                             tooltip={item.title}
                             isActive={isActive}
                           >
-                            <item.icon className="h-4 w-4" />
+                            <Icon name={item.icon} className="h-5 w-5" />
                             <span>{item.title}</span>
-                            <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-200 ${comunicacionOpen ? 'rotate-90' : ''}`} />
+                            <Icon name="chevron_right" className={`ml-auto h-5 w-5 transition-transform duration-200 ${comunicacionOpen ? 'rotate-90' : ''}`} />
                           </SidebarMenuButton>
                         </Collapsible.Trigger>
                         <Collapsible.Content>
@@ -178,7 +167,7 @@ export function AppSidebar() {
                                 isActive={pathname === '/adm/complaints'}
                               >
                                 <a href="/adm/complaints">
-                                  <MessageCircle className="h-4 w-4" />
+                                  <Icon name="chat" className="h-5 w-5" />
                                   <span>Listado de quejas</span>
                                 </a>
                               </SidebarMenuSubButton>
@@ -200,7 +189,7 @@ export function AppSidebar() {
                       tooltip={item.title}
                     >
                       <a href={item.url}>
-                        <item.icon className="h-4 w-4" />
+                        <Icon name={item.icon} className="h-5 w-5" />
                         <span>{item.title}</span>
                       </a>
                     </SidebarMenuButton>
@@ -236,7 +225,7 @@ export function AppSidebar() {
                       {session?.userRole || "Rol"}
                     </div>
                   </div>
-                  <MoreVertical className="size-4 shrink-0" />
+                  <Icon name="more_vert" className="size-5 shrink-0" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -265,12 +254,12 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
+                  <Icon name="person" className="mr-2 h-5 w-5" />
                   Perfil
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <Icon name="logout" className="mr-2 h-5 w-5" />
                   Cerrar sesión
                 </DropdownMenuItem>
               </DropdownMenuContent>

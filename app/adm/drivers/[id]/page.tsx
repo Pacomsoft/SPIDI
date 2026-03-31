@@ -378,6 +378,19 @@ const generarPagosMock = (driverId: string): PaymentWeek[] => {
   })
 }
 
+const getBadgeClass = (estado: EstadoDriver): string => {
+  switch (estado) {
+    case "Habilitado":
+      return "badge-activo"
+    case "Deshabilitado":
+      return "badge-inactivo"
+    case "Suspendido":
+      return "badge-revision"
+    default:
+      return "badge-pendiente"
+  }
+}
+
 const getBadgeVariant = (estado: EstadoDriver): "default" | "destructive" | "secondary" | "outline" => {
   switch (estado) {
     case "Habilitado":
@@ -1949,39 +1962,39 @@ export default function DriverDetallePage() {
                         </Alert>
                       )}
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {getDocumentStatusIcon(documento.estatus)}
-                        {getDocumentStatusBadge(documento.estatus)}
+                        <span className="text-xs font-medium">{documento.estatus}</span>
                       </div>
 
                       {doc.tipo !== "nss" && doc.tipo !== "contrato" && doc.tipo !== "cuentaBancaria" && (
                         <div className="space-y-2">
-                          <Label 
-                            htmlFor={`vigencia-${doc.tipo}`} 
+                          <span 
                             className={`text-xs ${
                               documento.isExpired 
                                 ? 'text-red-700 font-semibold' 
                                 : isExpiringSoon(documento.fechaVigencia)
                                 ? 'text-blue-700 font-semibold'
-                                : ''
+                                : 'text-muted-foreground'
                             }`}
                           >
-                            Fecha de vigencia {documento.isExpired && '(Vencida)'} {!documento.isExpired && isExpiringSoon(documento.fechaVigencia) && '(Por vencer)'}
-                          </Label>
-                          <Input
-                            id={`vigencia-${doc.tipo}`}
-                            type="date"
-                            value={documento.fechaVigencia || ''}
-                            onChange={(e) => handleDocVigenciaChange(doc.tipo, e.target.value)}
-                            disabled={isReadOnly}
-                            className={`w-full ${
-                              documento.isExpired 
-                                ? 'border-red-500 focus-visible:ring-red-500' 
-                                : isExpiringSoon(documento.fechaVigencia)
-                                ? 'border-blue-500 focus-visible:ring-blue-500'
-                                : ''
-                            }`}
-                          />
+                            Vigencia {documento.isExpired && '(Vencida)'} {!documento.isExpired && isExpiringSoon(documento.fechaVigencia) && '(Por vencer)'}
+                          </span>
+                          <p className={`text-sm font-medium ${
+                            documento.isExpired 
+                              ? 'text-red-700' 
+                              : isExpiringSoon(documento.fechaVigencia)
+                              ? 'text-blue-700'
+                              : 'text-foreground'
+                          }`}>
+                            {documento.fechaVigencia 
+                              ? new Date(documento.fechaVigencia).toLocaleDateString('es-MX', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) 
+                              : '—'}
+                          </p>
                         </div>
                       )}
 
