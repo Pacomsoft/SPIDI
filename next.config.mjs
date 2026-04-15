@@ -24,6 +24,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true, // <-- permite build aunque haya errores de lint
   },
+  output: 'standalone',
   async headers() {
     return [
       {
