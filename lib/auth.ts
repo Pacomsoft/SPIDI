@@ -1,130 +1,60 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { Role } from "./roles"
+import { IndexedDbSessionRepository } from "@/modules/login/infrastructure/repositories/indexed-db-session.repository"
+import { type UserRoleValue } from "@/modules/login/domain/value-objects/user-role"
 
-const SESSION_KEY = "spidi_session"
-const SESSION_DURATION = 8 * 60 * 60 * 1000 // 8 horas en milisegundos
+// Re-exportar Role para compatibilidad con componentes existentes
+export type Role = UserRoleValue
 
-interface Session {
-  userId: string
-  userName: string
-  userRole: string
-  role: Role // Role tipado del sistema
-  expiresAt: number
+const sessionRepository = new IndexedDbSessionRepository()
+
+/** Call once on app boot (e.g. in protected-route or root layout) to hydrate in-memory cache */
+export async function initSessionRepository(): Promise<void> {
+  return sessionRepository.init()
 }
 
 export const authProvider = {
-  /**
-   * Inicia el proceso de login SSO
-   * TODO: Integrar App Directory redirect
-   * TODO: Recibir callback con token de App Directory
-   */
-  startLogin: async (): Promise<void> => {
-    // Simular delay de redirección a App Directory
-    await new Promise((resolve) => setTimeout(resolve, 600))
-
-    // Crear sesión mock con rol por defecto
-    const session: Session = {
-      userId: "mock-user-123",
-      userName: "Juan Pérez",
-      userRole: "Admin. de Operaciones",
-      role: "ADMIN_OPERACIONES", // Rol por defecto para demostración
-      expiresAt: Date.now() + SESSION_DURATION,
-    }
-
-    // Guardar en localStorage
-    if (typeof window !== "undefined") {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-    }
-
-    // TODO: En producción, esto será reemplazado por el redirect a App Directory
-    // window.location.href = process.env.NEXT_PUBLIC_APP_DIRECTORY_URL
+  logout: async (): Promise<void> => {
+    await sessionRepository.clear()
   },
 
-  /**
-   * Cierra la sesión actual
-   */
-  logout: (): void => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(SESSION_KEY)
-    }
+  getSession: () => {
+    return sessionRepository.findCurrentSync()
+      ? {
+          userId: sessionRepository.findCurrentSync()!.userId,
+          userName: sessionRepository.findCurrentSync()!.userName,
+          userRole: sessionRepository.findCurrentSync()!.userRole,
+          role: sessionRepository.findCurrentSync()!.role as Role,
+          expiresAt: sessionRepository.findCurrentSync()!.expiresAt,
+        }
+      : null
   },
 
-  /**
-   * Obtiene la sesión actual
-   */
-  getSession: (): Session | null => {
-    if (typeof window === "undefined") {
-      return null
-    }
-
-    const sessionStr = localStorage.getItem(SESSION_KEY)
-    if (!sessionStr) {
-      return null
-    }
-
-    try {
-      const session: Session = JSON.parse(sessionStr)
-
-      // Verificar si la sesión expiró
-      if (Date.now() > session.expiresAt) {
-        localStorage.removeItem(SESSION_KEY)
-        return null
-      }
-
-      return session
-    } catch {
-      localStorage.removeItem(SESSION_KEY)
-      return null
-    }
-  },
-
-  /**
-   * Verifica si hay una sesión válida
-   */
   isAuthenticated: (): boolean => {
-    return authProvider.getSession() !== null
+    return sessionRepository.findCurrentSync() !== null
   },
 
-  /**
-   * Renueva la sesión extendiendo su expiración
-   */
-  renewSession: (): void => {
-    const session = authProvider.getSession()
-    if (session) {
-      session.expiresAt = Date.now() + SESSION_DURATION
-      if (typeof window !== "undefined") {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session))
-      }
-    }
+  renewSession: async (): Promise<void> => {
+    const session = sessionRepository.findCurrentSync()
+    if (session) await sessionRepository.renew(session)
   },
 
-  /**
-   * Obtiene el rol actual del usuario
-   */
   getRole: (): Role | null => {
-    const session = authProvider.getSession()
-    return session?.role ?? null
+    return (sessionRepository.findCurrentSync()?.role as Role) ?? null
   },
 
-  /**
-   * Cambia el rol del usuario (solo para modo demo)
-   * @param role - Nuevo rol a asignar
-   */
-  setRole: (role: Role): void => {
-    const session = authProvider.getSession()
-    if (session && typeof window !== "undefined") {
-      session.role = role
-      // También actualizar el userRole descriptivo
-      const roleDescriptions: Record<Role, string> = {
-        ADMIN_TI: "Administrador de TI",
-        ADMIN_OPERACIONES: "Administrador de Operaciones",
-        FINANZAS: "Finanzas",
-        RH: "Recursos Humanos",
-      }
-      session.userRole = roleDescriptions[role]
-      localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  setRole: async (role: Role): Promise<void> => {
+    const session = sessionRepository.findCurrentSync()
+    if (!session) return
+    const descriptions: Record<Role, string> = {
+      ADMIN_TI: "Administrador de TI",
+      ADMIN_OPERACIONES: "Administrador de Operaciones",
+      FINANZAS: "Finanzas",
+      RH: "Recursos Humanos",
     }
+    const updated = session.withRole(role, descriptions[role])
+    await sessionRepository.save(updated)
   },
 }
+
+

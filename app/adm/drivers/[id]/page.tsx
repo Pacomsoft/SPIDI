@@ -1,9 +1,10 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { RoleGuard } from "@/components/role-guard"
 import { authProvider } from "@/lib/auth"
+import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -446,6 +447,8 @@ export default function DriverDetallePage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+  const configuracionRepository = new IndexedDbConfiguracionRepository()
+  const savedDocsJsonRef = useRef<string>("")
 
   // Estados
   const [driver, setDriver] = useState<DriverData | null>(null)
@@ -499,14 +502,15 @@ export default function DriverDetallePage() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    const loadData = () => {
+    const loadData = async () => {
       const data = generarDriverMock(id)
       setDriver(data)
       setInitialSnapshot(JSON.parse(JSON.stringify(data)))
 
-      // Cargar documentos desde localStorage o inicializar con ejemplos
-      const savedDocs = localStorage.getItem(`driver_docs_${id}`)
+      // Cargar documentos desde configuraciones (IndexedDB) o inicializar con ejemplos
+      const savedDocs = await configuracionRepository.get(`driver_docs_${id}`)
       if (savedDocs) {
+        savedDocsJsonRef.current = savedDocs
         setDocumentos(JSON.parse(savedDocs))
       } else {
         // Inicializar con ejemplos de diferentes estados
@@ -568,12 +572,12 @@ export default function DriverDetallePage() {
       }
 
       // Cargar notas internas
-      const savedNotas = localStorage.getItem(`driver_notas_${id}`) || ""
+      const savedNotas = (await configuracionRepository.get(`driver_notas_${id}`)) ?? ""
       setNotasInternas(savedNotas)
       setInitialNotas(savedNotas)
     }
 
-    loadData()
+    void loadData()
   }, [id])
 
   // Cargar pedidos
@@ -596,9 +600,9 @@ export default function DriverDetallePage() {
     if (!driver || !initialSnapshot) return false
     const changed = JSON.stringify(driver) !== JSON.stringify(initialSnapshot)
     const notasChanged = notasInternas !== initialNotas
-    const docsChanged = JSON.stringify(documentos) !== localStorage.getItem(`driver_docs_${id}`)
+    const docsChanged = JSON.stringify(documentos) !== savedDocsJsonRef.current
     return changed || notasChanged || docsChanged
-  }, [driver, initialSnapshot, notasInternas, initialNotas, documentos, id])
+  }, [driver, initialSnapshot, notasInternas, initialNotas, documentos])
 
   // Handlers
   const handleInputChange = (field: keyof DriverData, value: string) => {
@@ -1105,13 +1109,15 @@ export default function DriverDetallePage() {
       })
     }
     
-    // Guardar en localStorage
+    // Guardar en configuraciones (IndexedDB)
     if (driver) {
       setInitialSnapshot(JSON.parse(JSON.stringify(driver)))
     }
+    const docsJson = JSON.stringify(documentos)
+    savedDocsJsonRef.current = docsJson
     setInitialNotas(notasInternas)
-    localStorage.setItem(`driver_notas_${id}`, notasInternas)
-    localStorage.setItem(`driver_docs_${id}`, JSON.stringify(documentos))
+    await configuracionRepository.set(`driver_notas_${id}`, notasInternas)
+    await configuracionRepository.set(`driver_docs_${id}`, docsJson)
     
     setIsSaving(false)
     setToastMessage("Cambios guardados correctamente")

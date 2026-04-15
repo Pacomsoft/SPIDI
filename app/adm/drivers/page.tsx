@@ -34,8 +34,10 @@ import {
 } from "lucide-react"
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 
 const moduleKey = "DRIVERS"
+const configuracionRepository = new IndexedDbConfiguracionRepository()
 
 // ==========================================
 // FUNCIONES DE BÚSQUEDA AVANZADA
@@ -372,16 +374,19 @@ export default function DriversPage() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [inputFocused, setInputFocused] = useState(false)
   
-  // Cargar historial de búsquedas desde localStorage
+  // Cargar historial de búsquedas desde configuraciones (IndexedDB)
   useEffect(() => {
-    const savedHistory = localStorage.getItem('driversSearchHistory')
-    if (savedHistory) {
-      try {
-        setSearchHistory(JSON.parse(savedHistory))
-      } catch (e) {
-        console.error('Error loading search history:', e)
+    const load = async () => {
+      const savedHistory = await configuracionRepository.get('driversSearchHistory')
+      if (savedHistory) {
+        try {
+          setSearchHistory(JSON.parse(savedHistory))
+        } catch (e) {
+          console.error('Error loading search history:', e)
+        }
       }
     }
+    void load()
   }, [])
   
   // Guardar búsqueda en historial cuando cambia searchTerm (después de 1 segundo)
@@ -394,8 +399,8 @@ export default function DriversPage() {
           const filtered = prev.filter(item => item !== trimmed)
           const newHistory = [trimmed, ...filtered].slice(0, 5)
           
-          // Guardar en localStorage
-          localStorage.setItem('driversSearchHistory', JSON.stringify(newHistory))
+          // Guardar en configuraciones (IndexedDB)
+          void configuracionRepository.set('driversSearchHistory', JSON.stringify(newHistory))
           return newHistory
         })
       }, 1000)

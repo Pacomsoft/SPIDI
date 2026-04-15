@@ -1,0 +1,72 @@
+import { type IHttpClient } from '@/modules/shared/domain/contracts/http-client.interface';
+import { type IConfiguracionRepository } from '@/modules/shared/domain/contracts/configuracion-repository.interface';
+import { type IRegisterRepository } from '../domain/contracts/register-repository.interface';
+import { type IUseCase } from '@/modules/shared/domain/contracts/use-case.interface';
+import { type IStateDTO } from '../domain/contracts/state.dto';
+import { type IVerificationResult } from '../domain/contracts/verification-result.dto';
+import { type IRegistroDTO } from '../domain/contracts/registro.dto';
+import { type IRegisterApplicantDto } from '../domain/contracts/register-applicant.dto';
+import { ApiRegisterRepository } from './repositories/api-register.repository';
+import { GetStatesUseCase } from '../application/use-cases/get-states.use-case';
+import { RequestVerificationCodeSmsUseCase, type IRequestVerificationCodeSmsInput } from '../application/use-cases/request-verification-code-sms.use-case';
+import { ValidateVerificationCodeSmsUseCase, type IValidateVerificationCodeSmsInput } from '../application/use-cases/validate-verification-code-sms.use-case';
+import { RequestVerificationCodeEmailUseCase, type IRequestVerificationCodeEmailInput } from '../application/use-cases/request-verification-code-email.use-case';
+import { ValidateVerificationCodeEmailUseCase, type IValidateVerificationCodeEmailInput } from '../application/use-cases/validate-verification-code-email.use-case';
+import { GuardarDriverUseCase } from '../application/use-cases/guardar-driver.use-case';
+
+export function createRegisterRepository(
+  httpClient: IHttpClient,
+  configuracionRepository?: IConfiguracionRepository,
+): IRegisterRepository {
+  return new ApiRegisterRepository(httpClient, configuracionRepository);
+}
+
+export function createGetStatesUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<void, IStateDTO[]> {
+  return new GetStatesUseCase(registerRepository);
+}
+
+export function createRequestVerificationCodeSmsUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<IRequestVerificationCodeSmsInput, IResultApi<IVerificationResult>> {
+  return new RequestVerificationCodeSmsUseCase(registerRepository);
+}
+
+export function createValidateVerificationCodeSmsUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<IValidateVerificationCodeSmsInput, IResultApi<IVerificationResult>> {
+  return new ValidateVerificationCodeSmsUseCase(registerRepository);
+}
+
+export function createRequestVerificationCodeEmailUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<IRequestVerificationCodeEmailInput, IResultApi<IVerificationResult>> {
+  return new RequestVerificationCodeEmailUseCase(registerRepository);
+}
+
+export function createValidateVerificationCodeEmailUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<IValidateVerificationCodeEmailInput, IResultApi<IVerificationResult>> {
+  return new ValidateVerificationCodeEmailUseCase(registerRepository);
+}
+
+export function createGuardarDriverUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<IRegistroDTO, IResultApi<IRegisterApplicantDto>> {
+  return new GuardarDriverUseCase(registerRepository);
+}
+
+export function createRegistroModule(httpClient: IHttpClient, configuracionRepository?: IConfiguracionRepository) {
+  const registerRepository = createRegisterRepository(httpClient, configuracionRepository);
+  return {
+    useCases: {
+      getStates: createGetStatesUseCase(registerRepository),
+      requestVerificationCodeSms: createRequestVerificationCodeSmsUseCase(registerRepository),
+      validateVerificationCodeSms: createValidateVerificationCodeSmsUseCase(registerRepository),
+      requestVerificationCodeEmail: createRequestVerificationCodeEmailUseCase(registerRepository),
+      validateVerificationCodeEmail: createValidateVerificationCodeEmailUseCase(registerRepository),
+      guardarDriver: createGuardarDriverUseCase(registerRepository),
+    },
+  };
+}

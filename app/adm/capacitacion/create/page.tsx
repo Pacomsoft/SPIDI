@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -58,6 +59,7 @@ const quillModules = {
 }
 
 const quillFormats = ["bold", "italic", "list", "bullet", "link"]
+const configuracionRepository = new IndexedDbConfiguracionRepository()
 
 export default function CreateTrainingPage() {
   const router = useRouter()
@@ -232,9 +234,9 @@ export default function CreateTrainingPage() {
     await new Promise(resolve => setTimeout(resolve, 1500))
 
     // Generar ID incremental (dummy)
-    const existingCount = Number(localStorage.getItem("trainingCount") || "0")
+    const existingCount = Number((await configuracionRepository.get("trainingCount")) || "0")
     const newId = `CAP-${String(existingCount + 1).padStart(4, "0")}`
-    localStorage.setItem("trainingCount", String(existingCount + 1))
+    await configuracionRepository.set("trainingCount", String(existingCount + 1))
 
     // Log de auditoría
     const auditLog = {

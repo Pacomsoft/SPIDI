@@ -1,0 +1,37 @@
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--color-primary-subtle);
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-light);
+  padding: 5px 14px;
+  border-radius: 50px;
+  background: var(--color-primary-ghost);
+  transition: all 0.3s ease;
+}
+
+.step.active {
+  color: #fff;
+  background: var(--color-primary-darker);
+}
+
+.step.done {
+  color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.divider {
+  color: var(--color-primary-subtle);
+  font-size: 14px;
+}

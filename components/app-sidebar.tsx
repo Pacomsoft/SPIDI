@@ -107,8 +107,8 @@ export function AppSidebar() {
     allowedModules.includes(item.moduleKey)
   )
 
-  const handleLogout = () => {
-    authProvider.logout()
+  const handleLogout = async () => {
+    await authProvider.logout()
     router.push("/login")
   }
 
