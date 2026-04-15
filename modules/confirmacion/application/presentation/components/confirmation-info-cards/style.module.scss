@@ -1,0 +1,105 @@
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 36px;
+  animation: fadeUp 0.5s ease 0.7s forwards;
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  border: 1px solid var(--color-primary-subtle);
+  text-align: center;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.iconWrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary-xlight);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary-darker);
+  margin-bottom: 6px;
+}
+
+.cardText {
+  font-size: 13px;
+  color: var(--color-primary-mid);
+  line-height: 1.5;
+}
+
+.badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-primary-darker);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.badge:hover {
+  background: var(--color-primary-dark);
+}
+
+.supportBtn {
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 50px;
+  margin-top: 8px;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary-subtle);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.supportBtn:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-ghost);
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+}

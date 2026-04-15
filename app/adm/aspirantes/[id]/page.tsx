@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation"
 import { useState, useEffect, useMemo } from "react"
 import { RoleGuard } from "@/components/role-guard"
 import { authProvider } from "@/lib/auth"
+import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +38,7 @@ import {
 } from "lucide-react"
 
 const moduleKey = "ASPIRANTES"
+const configuracionRepository = new IndexedDbConfiguracionRepository()
 
 // Componentes UI simples
 const Label = ({ htmlFor, children, className = "" }: { htmlFor?: string; children: React.ReactNode; className?: string }) => (
@@ -347,15 +349,15 @@ export default function AspiranteDetallePage() {
   // Cargar datos iniciales
   useEffect(() => {
     // Simular carga de datos
-    const loadData = () => {
-      // Intentar cargar desde localStorage primero
-      const savedAspirante = localStorage.getItem(`aspirante_${id}`)
+    const loadData = async () => {
+      // Intentar cargar desde configuraciones (IndexedDB) primero
+      const savedAspirante = await configuracionRepository.get(`aspirante_${id}`)
       const data = savedAspirante ? JSON.parse(savedAspirante) : generarAspiranteMock(id)
       setAspirante(data)
       setInitialSnapshot(JSON.parse(JSON.stringify(data)))
 
-      // Cargar documentos desde localStorage o inicializar con ejemplos
-      const savedDocs = localStorage.getItem(`aspirante_docs_${id}`)
+      // Cargar documentos desde configuraciones (IndexedDB) o inicializar con ejemplos
+      const savedDocs = await configuracionRepository.get(`aspirante_docs_${id}`)
       if (savedDocs) {
         setDocumentos(JSON.parse(savedDocs))
       } else {
@@ -442,19 +444,19 @@ export default function AspiranteDetallePage() {
       }
 
       // Cargar notas internas
-      const savedNotas = localStorage.getItem(`aspirante_notas_${id}`) || ""
+      const savedNotas = (await configuracionRepository.get(`aspirante_notas_${id}`)) ?? ""
       setNotasInternas(savedNotas)
       setInitialNotas(savedNotas)
       
       // Cargar propuestas
-      const savedPropuestas = localStorage.getItem(`aspirante_propuestas_${id}`)
+      const savedPropuestas = await configuracionRepository.get(`aspirante_propuestas_${id}`)
       if (savedPropuestas) {
         const propuestasData = JSON.parse(savedPropuestas)
         setPropuestas(propuestasData)
       }
     }
 
-    loadData()
+    void loadData()
   }, [id])
   
   // useEffect para actualizar contador de expiración
@@ -476,13 +478,13 @@ export default function AspiranteDetallePage() {
         
         if (cambios) {
           // Guardar propuestas actualizadas
-          localStorage.setItem(`aspirante_propuestas_${id}`, JSON.stringify(updated))
+          void configuracionRepository.set(`aspirante_propuestas_${id}`, JSON.stringify(updated))
           
           // Si alguna propuesta expiró y el aspirante está en "Propuesta enviada", cambiar a "En Revisión"
           if (aspirante && aspirante.estadoAplicacion === "Propuesta enviada") {
             const aspiranteActualizado = { ...aspirante, estadoAplicacion: "En Revisión" as EstadoAplicacion }
             setAspirante(aspiranteActualizado)
-            localStorage.setItem(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
+            void configuracionRepository.set(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
           }
         }
         
@@ -645,13 +647,13 @@ export default function AspiranteDetallePage() {
     
     const nuevasPropuestas = [...propuestas, nuevaPropuesta]
     setPropuestas(nuevasPropuestas)
-    localStorage.setItem(`aspirante_propuestas_${id}`, JSON.stringify(nuevasPropuestas))
+    void configuracionRepository.set(`aspirante_propuestas_${id}`, JSON.stringify(nuevasPropuestas))
     
     // Cambiar estado del aspirante
     const aspiranteActualizado = { ...aspirante, estadoAplicacion: "Propuesta enviada" as EstadoAplicacion }
     setAspirante(aspiranteActualizado)
     setInitialSnapshot(aspiranteActualizado) // Actualizar snapshot
-    localStorage.setItem(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
+    void configuracionRepository.set(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
     
     // Mostrar toast
     setToastMessage("✔ Propuesta enviada al aspirante\nPush enviada\nCorreo enviado\nSMS enviado")
@@ -688,14 +690,14 @@ export default function AspiranteDetallePage() {
     })
     
     setPropuestas(propuestasActualizadas)
-    localStorage.setItem(`aspirante_propuestas_${id}`, JSON.stringify(propuestasActualizadas))
+    void configuracionRepository.set(`aspirante_propuestas_${id}`, JSON.stringify(propuestasActualizadas))
     
     // Cambiar estado del aspirante
     const nuevoEstado = respuesta === "Aceptada" ? "Aprobado" : "En Revisión"
     const aspiranteActualizado = { ...aspirante, estadoAplicacion: nuevoEstado as EstadoAplicacion }
     setAspirante(aspiranteActualizado)
     setInitialSnapshot(aspiranteActualizado)
-    localStorage.setItem(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
+    void configuracionRepository.set(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
   }
   
   // Función para eliminar todas las propuestas (solo para pruebas - ASP-9999)
@@ -703,13 +705,13 @@ export default function AspiranteDetallePage() {
     if (!aspirante) return
     
     setPropuestas([])
-    localStorage.removeItem(`aspirante_propuestas_${id}`)
+    void configuracionRepository.remove(`aspirante_propuestas_${id}`)
     
     // Cambiar estado del aspirante a "En Revisión"
     const aspiranteActualizado = { ...aspirante, estadoAplicacion: "En Revisión" as EstadoAplicacion }
     setAspirante(aspiranteActualizado)
     setInitialSnapshot(aspiranteActualizado)
-    localStorage.setItem(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
+    void configuracionRepository.set(`aspirante_${id}`, JSON.stringify(aspiranteActualizado))
   }
   
   const canSendProposal = useMemo(() => {
@@ -795,10 +797,10 @@ export default function AspiranteDetallePage() {
       updatedAspirante.estadoAplicacion = "En Revisión"
     }
 
-    // Guardar en localStorage
-    localStorage.setItem(`aspirante_${id}`, JSON.stringify(updatedAspirante))
-    localStorage.setItem(`aspirante_notas_${id}`, notasInternas)
-    localStorage.setItem(`aspirante_docs_${id}`, JSON.stringify(documentos))
+    // Guardar en configuraciones (IndexedDB)
+    await configuracionRepository.set(`aspirante_${id}`, JSON.stringify(updatedAspirante))
+    await configuracionRepository.set(`aspirante_notas_${id}`, notasInternas)
+    await configuracionRepository.set(`aspirante_docs_${id}`, JSON.stringify(documentos))
 
     // Registrar log de cambios
     const changeLog = {
@@ -806,9 +808,10 @@ export default function AspiranteDetallePage() {
       aspirantId: id,
       changedFields
     }
-    const logs = JSON.parse(localStorage.getItem(`change_logs`) || "[]")
+    const logsRaw = await configuracionRepository.get(`change_logs`)
+    const logs = JSON.parse(logsRaw ?? "[]")
     logs.push(changeLog)
-    localStorage.setItem(`change_logs`, JSON.stringify(logs))
+    await configuracionRepository.set(`change_logs`, JSON.stringify(logs))
 
     // Actualizar snapshots
     setAspirante(updatedAspirante)

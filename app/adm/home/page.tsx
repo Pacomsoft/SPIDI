@@ -25,13 +25,13 @@ export default function AdminHomePage() {
     }
   }, [])
 
-  const handleLogout = () => {
-    authProvider.logout()
+  const handleLogout = async () => {
+    await authProvider.logout()
     router.push("/login")
   }
 
-  const handleRoleChange = (newRole: Role) => {
-    authProvider.setRole(newRole)
+  const handleRoleChange = async (newRole: Role) => {
+    await authProvider.setRole(newRole)
     const updatedSession = authProvider.getSession()
     if (updatedSession) {
       setSession(updatedSession)

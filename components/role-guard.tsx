@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { authProvider } from "@/lib/auth"
+import { authProvider, initSessionRepository } from "@/lib/auth"
 import { canAccessModule, type ModuleKey } from "@/lib/roles"
 
 interface RoleGuardProps {
@@ -14,19 +14,19 @@ export function RoleGuard({ moduleKey, children }: RoleGuardProps) {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar autenticación
-    const session = authProvider.getSession()
-    if (!session) {
-      router.push("/login")
-      return
+    const checkAccess = async () => {
+      await initSessionRepository()
+      const session = authProvider.getSession()
+      if (!session) {
+        router.push("/login")
+        return
+      }
+      const hasAccess = canAccessModule(session.role, moduleKey)
+      if (!hasAccess) {
+        router.push("/denied")
+      }
     }
-
-    // Verificar permisos de acceso al módulo
-    const hasAccess = canAccessModule(session.role, moduleKey)
-    if (!hasAccess) {
-      router.push("/denied")
-      return
-    }
+    checkAccess()
   }, [moduleKey, router])
 
   return <>{children}</>

@@ -41,3 +41,4 @@ next-env.d.ts
 
 #docs tba
 /.github/agents/
+tsc-output.txt
