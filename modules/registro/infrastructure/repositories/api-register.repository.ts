@@ -7,6 +7,7 @@ import { StatesFetchError } from "../../domain/errors/states-fetch.error";
 import { ICheckDuplicateResult } from "../../domain/contracts/check-duplicate-result.dto";
 import { type IRegistroDTO } from "../../domain/contracts/registro.dto";
 import { type IRegisterApplicantDto } from "../../domain/contracts/register-applicant.dto";
+import { objectToFormData } from "@/modules/shared/domain/utils/object-to-formdata.util";
 
 interface IApiState {
   id: number;
@@ -19,12 +20,6 @@ export class ApiRegisterRepository implements IRegisterRepository {
     private readonly httpClient: IHttpClient,
     private readonly configuracionRepository?: IConfiguracionRepository,
   ) {}
-
-  private async appendDeviceId(formData: FormData): Promise<void> {
-    if (!this.configuracionRepository) return;
-    const spidiId = await this.configuracionRepository.get("spidiId");
-    if (spidiId) formData.append("deviceId", spidiId);
-  }
 
   async getStates(): Promise<IStateDTO[]> {
     try {
@@ -46,10 +41,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     phoneNumber: string,
   ): Promise<IResultApi<IVerificationResult>> {
     try {
-      const formData = new FormData();
-      formData.append("formId", formId);
-      formData.append("phoneNumber", phoneNumber);
-      await this.appendDeviceId(formData);
+      const formData = objectToFormData({ formId, phoneNumber });
       const response = await this.httpClient.post<IVerificationResult>(
         "api/v1/otp/send-sms",
         formData,
@@ -75,11 +67,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     code: string,
   ): Promise<IResultApi<IVerificationResult>> {
     try {
-      const formData = new FormData();
-      formData.append("formId", formId);
-      formData.append("phoneNumber", phoneNumber);
-      formData.append("code", code);
-      await this.appendDeviceId(formData);
+      const formData = objectToFormData({ formId, phoneNumber, code });
       const response = await this.httpClient.post<IVerificationResult>(
         "api/v1/otp/validate-sms",
         formData,
@@ -104,10 +92,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     email: string,
   ): Promise<IResultApi<IVerificationResult>> {
     try {
-      const formData = new FormData();
-      formData.append("formId", formId);
-      formData.append("email", email);
-      await this.appendDeviceId(formData);
+      const formData = objectToFormData({ formId, email });
       const response = await this.httpClient.post<IVerificationResult>(
         "api/v1/otp/send-email",
         formData,
@@ -132,12 +117,8 @@ export class ApiRegisterRepository implements IRegisterRepository {
     email: string,
     code: string,
   ): Promise<IResultApi<IVerificationResult>> {
-    try {
-      const formData = new FormData();
-      formData.append("formId", formId);
-      formData.append("email", email);
-      formData.append("code", code);
-      await this.appendDeviceId(formData);
+    try {      
+      const formData = objectToFormData({ formId, email, code });
       const response = await this.httpClient.post<IVerificationResult>(
         "api/v1/otp/validate-email",
         formData,
@@ -162,9 +143,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     email: string,
   ): Promise<IResultApi<ICheckDuplicateResult>> {
     try {
-      const formData = new FormData();
-      formData.append("phoneNumber", phoneNumber);
-      formData.append("email", email);
+      const formData = objectToFormData({ phoneNumber, email });
       const response = await this.httpClient.post<ICheckDuplicateResult>(
         "api/v1/driver/check-duplicate",
         formData,
@@ -186,24 +165,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
 
   async guardarDriver(driver: IRegistroDTO): Promise<IResultApi<IRegisterApplicantDto>> {
     try {
-      const formData = new FormData();
-      formData.append("firstName", driver.firstName);
-      formData.append("middleName", driver.middleName);
-      formData.append("paternalSurname", driver.paternalSurname);
-      formData.append("maternalSurname", driver.maternalSurname);
-      formData.append("telefono", driver.telefono);
-      formData.append("email", driver.email);
-      formData.append("marca", driver.marca);
-      formData.append("modelo", driver.modelo);
-      formData.append("anio", driver.anio);
-      formData.append("placas", driver.placas);
-      formData.append("color", driver.color);
-      formData.append("estado", driver.estado);
-      formData.append("ciudad", driver.ciudad);
-      formData.append("comoTeEnteraste", driver.comoTeEnteraste);
-      formData.append("verifiedSms", String(driver.verifiedSms));
-      formData.append("verifiedEmail", String(driver.verifiedEmail));
-      await this.appendDeviceId(formData);
+      const formData = objectToFormData(driver);
       const response = await this.httpClient.post<IRegisterApplicantDto>(
         "api/v1/driver",
         formData,

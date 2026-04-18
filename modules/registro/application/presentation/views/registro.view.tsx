@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { type IUseCase } from "@/modules/shared/domain/contracts/use-case.interface";
 import { type IConfiguracionRepository } from "@/modules/shared/domain/contracts/configuracion-repository.interface";
 import { useGlobalLoading } from "@/modules/shared/application/hooks/use-global-loading.hook";
-import { type IStateDTO } from "../../../domain/contracts/state.dto";
+import { ICityDTO, type IStateDTO } from "../../../domain/contracts/state.dto";
 import { type IRegistroDTO } from "../../../domain/contracts/registro.dto";
 import { type IVerificationResult } from "../../../domain/contracts/verification-result.dto";
 import { type IRegisterApplicantDto } from "../../../domain/contracts/register-applicant.dto";
@@ -38,7 +38,7 @@ type FieldConfig = {
 
 const yearValidator = (val: string) => {
   const n = parseInt(val, 10);
-  return n >= 1990 && n <= 2026;
+  return n >= 1990 && n <= new Date().getFullYear();
 };
 
 const FIELDS: FieldConfig[] = [
@@ -71,7 +71,7 @@ const FIELDS: FieldConfig[] = [
     msg: "Ingresa tu apellido materno",
   },
   {
-    id: "telefono",
+    id: "phone",
     required: true,
     pattern: /^\d{10}$/,
     msg: "Ingresa 10 dígitos",
@@ -84,28 +84,28 @@ const FIELDS: FieldConfig[] = [
     msg: "Ingresa un correo válido",
   },
   {
-    id: "marca",
+    id: "vehicleBrand",
     required: true,
     min: 2,
     max: 30,
     msg: "Ingresa la marca del vehículo",
   },
   {
-    id: "modelo",
+    id: "vehicleModel",
     required: true,
     min: 1,
     max: 50,
     msg: "Ingresa el modelo del vehículo",
   },
   {
-    id: "anio",
+    id: "vehicleYear",
     required: true,
     pattern: /^\d{4}$/,
     custom: yearValidator,
-    msg: "Ingresa un año válido (1990–2026)",
+    msg: `Ingresa un año válido (1990–${new Date().getFullYear()})`,
   },
   {
-    id: "placas",
+    id: "vehiclePlates",
     required: true,
     min: 2,
     max: 10,
@@ -113,29 +113,29 @@ const FIELDS: FieldConfig[] = [
     msg: "Ingresa las placas del vehículo",
   },
   {
-    id: "color",
+    id: "vehicleColor",
     required: true,
     min: 2,
     max: 30,
     msg: "Ingresa el color del vehículo",
   },
-  { id: "estado", required: true, type: "select", msg: "Selecciona un estado" },
+  { id: "workStateId", required: true, type: "select", msg: "Selecciona un estado" },
   {
-    id: "ciudad",
+    id: "workCityId",
     required: true,
     type: "select",
     msg: "Selecciona una ciudad",
   },
   {
-    id: "comoTeEnteraste",
+    id: "referalSource",
     required: true,
     type: "select",
     msg: "Selecciona una opción",
   },
 ];
 
-const getMessageFromEstadoVerificacion = (estado: EstadoVerificacionOtp) => {
-  switch (estado) {
+const getMessageFromEstadoVerificacion = (status: EstadoVerificacionOtp) => {
+  switch (status) {
     case EstadoVerificacionOtp.Pendiente:
       return "No se recibió el código. Intenta nuevamente.";
     case EstadoVerificacionOtp.Aprobado:
@@ -200,27 +200,28 @@ export function RegistroView({
   const { states, isLoading: statesLoading } = useStates(getStatesUseCase);
   const [formId, setFormId] = useState("");
   const [formData, setFormData] = useState<IRegistroDTO>({
+    formId: "",
     firstName: "",
     middleName: "",
     paternalSurname: "",
     maternalSurname: "",
-    telefono: "",
+    phone: "",
     email: "",
-    marca: "",
-    modelo: "",
-    anio: "",
-    placas: "",
-    color: "",
-    estado: "",
-    ciudad: "",
-    comoTeEnteraste: "",
+    vehicleBrand: "",
+    vehicleModel: "",
+    vehicleYear: "",
+    vehiclePlates: "",
+    vehicleColor: "",
+    workStateName: "",
+    workCityName: "",
+    referalSource: "",
     verifiedSms: false,
     verifiedEmail: false,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [validFields, setValidFields] = useState<Set<string>>(new Set());
-  const [ciudades, setCiudades] = useState<string[]>([]);
+  const [ciudades, setCiudades] = useState<ICityDTO[]>([]);
 
   // OTP States
   const [phoneOtp, setPhoneOtp] = useState(["", "", "", "", "", ""]);
@@ -260,9 +261,9 @@ export function RegistroView({
           if (now - timestamp < twentyFourHours) {
             if (cachedVerification) {
               try {
-                const verificationState = JSON.parse(cachedVerification);
+                const verificationState = JSON.parse(cachedVerification) as IRegistroDTO & { phoneVerified: boolean; emailVerified: boolean }; 
                 if (
-                  verificationState.telefono === data.telefono &&
+                  verificationState.phone === data.phone &&
                   verificationState.phoneVerified
                 ) {
                   phoneVerified = true;
@@ -281,23 +282,24 @@ export function RegistroView({
             }
 
             setFormData({
+              formId: "",
               firstName: String(data.firstName ?? ""),
               middleName: String(data.middleName ?? ""),
               paternalSurname: String(data.paternalSurname ?? ""),
               maternalSurname: String(data.maternalSurname ?? ""),
-              telefono: String(data.telefono ?? ""),
+              phone: String(data.phone ?? ""),
               email: String(data.email ?? ""),
-              marca: String(data.marca ?? ""),
-              modelo: String(data.modelo ?? ""),
-              anio: String(data.anio ?? ""),
-              placas: String(data.placas ?? ""),
-              color: String(data.color ?? ""),
-              estado: String(data.estado ?? ""),
-              ciudad: String(data.ciudad ?? ""),
-              comoTeEnteraste: String(data.comoTeEnteraste ?? ""),
-              verifiedSms: phoneVerified,
-              verifiedEmail: emailVerified,
-            });
+              vehicleBrand: String(data.vehicleBrand ?? ""),
+              vehicleModel: String(data.vehicleModel ?? ""),
+              vehicleYear: String(data.vehicleYear ?? ""),
+              vehiclePlates: String(data.vehiclePlates ?? ""),
+              vehicleColor: String(data.vehicleColor ?? ""),
+              workStateName: String(data.workStateName ?? ""),
+              workCityName: String(data.workCityName ?? ""),
+              referalSource: String(data.referalSource ?? ""),
+              phoneVerified: phoneVerified,
+              emailVerified: emailVerified,
+            } as IRegistroDTO & { phoneVerified: boolean; emailVerified: boolean });
           } else {
             void configuracionRepository.remove(
               IndexedDbConstantes.REGISTRO_CACHE,
@@ -313,7 +315,6 @@ export function RegistroView({
       if (cacheFormId) {
         setFormId(cacheFormId);
       } else {
-        if (formId.length > 0) return;
         const newFormId = uuidV7();
         setFormId(newFormId);
         await configuracionRepository.set(
@@ -323,15 +324,16 @@ export function RegistroView({
       }
     };
     void load();
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); //(fix elimina la race condition) 
 
   // Sync ciudades when states load (populates cities for cached/selected estado)
   useEffect(() => {
-    if (states.length > 0 && formData.estado) {
-      const match = states.find((s) => s.state === formData.estado);
-      setCiudades(match ? match.cities.map((c) => c.city) : []);
+    if (states.length > 0 && formData.workStateName) {
+      const match = states.find((s) => s.state === formData.workStateName);
+      setCiudades(match ? match.cities.map((c) => c) : []);
     }
-  }, [formData.estado, states]);
+  }, [formData.workStateName, states]);
 
   // Timer countdown para phone OTP
   useEffect(() => {
@@ -353,7 +355,7 @@ export function RegistroView({
     }
   }, [emailOtpSent, emailOtpTimer, formData]);
 
-  const validateField = (id: string, value?: string) => {
+  const validateField = (id: string, value?: string | number) => {
     const cfg = FIELDS.find((f) => f.id === id);
     if (!cfg) return true;
 
@@ -395,13 +397,15 @@ export function RegistroView({
     return !err;
   };
 
-  const handleInputChange = (id: string, value: string) => {
+  const handleInputChange = (id: string, value: string | number ) => {
     const cfg = FIELDS.find((f) => f.id === id);
-    let newValue = value ?? "";
+    let newValue: string | number | undefined = value ?? (typeof value === "string" ? "" : undefined);
+    if(typeof newValue === "number" && newValue === 0) {
+      newValue = undefined;
+    }
+    if (cfg?.transform) newValue = typeof newValue === "string" ? cfg.transform(newValue) : newValue;
 
-    if (cfg?.transform) newValue = cfg.transform(newValue);
-
-    if (id === "telefono" && formData.telefono !== newValue) {
+    if (id === "phone" && formData.phone !== newValue) {
       if (formData.verifiedSms || phoneOtpSent) {
         formData.verifiedSms = false;
         setPhoneOtpSent(false);
@@ -429,7 +433,15 @@ export function RegistroView({
       }
     }
 
-    const updatedData = { ...formData, [id]: newValue ?? "" };
+    const updatedData = { ...formData, [id]: newValue ?? "" } as IRegistroDTO;
+
+    if(id === "workCityId" && formData.workCityId !== newValue) {
+      const matchCity = ciudades.find((c) => c.id === Number(newValue));
+      if(matchCity) {
+        updatedData.workCityName = matchCity.city;
+        updatedData.workCityId = matchCity.id;
+      }
+    }
     setFormData(updatedData);
 
     void configuracionRepository.set(
@@ -447,13 +459,16 @@ export function RegistroView({
     validateField(id);
   };
 
-  const handleEstadoChange = (estado: string) => {
-    const safeEstado = estado ?? "";
-    const updatedData = { ...formData, estado: safeEstado, ciudad: "" };
+  const handleEstadoChange = (workStateId?: number) => {    
+    const match = states.find((s) => s.id === workStateId);
+    const updatedData = { ...formData, workStateName: match ? match.state: "", workStateId: workStateId, workCityName: "", workCityId: undefined } as IRegistroDTO;
+    if(match) {
+      setCiudades(match ? match.cities.map((c) => c) : []);
+    } else {
+      setCiudades([]); 
+    }
+    
     setFormData(updatedData);
-
-    const match = states.find((s) => s.state === safeEstado);
-    setCiudades(match ? match.cities.map((c) => c.city) : []);
 
     void configuracionRepository.set(
       IndexedDbConstantes.REGISTRO_CACHE,
@@ -465,12 +480,12 @@ export function RegistroView({
 
     setErrors((prev) => {
       const newErrors = { ...prev };
-      delete newErrors.estado;
-      delete newErrors.ciudad;
+      delete newErrors.workStateId;
+      delete newErrors.workCityId;
       return newErrors;
     });
 
-    validateField("estado", estado);
+    validateField("workStateId", workStateId);
   };
 
   const validateAllStep1 = () => {
@@ -520,7 +535,7 @@ export function RegistroView({
       showLoading();
       const result = await requestVerificationCodeSmsUseCase.execute({
         formId: formId,
-        phoneNumber: formData.telefono,
+        phoneNumber: formData.phone,
       });
       if (result.success) {
         const verifiedResult = result.data!;
@@ -583,7 +598,7 @@ export function RegistroView({
       showLoading();
       const result = await validateVerificationCodeSmsUseCase.execute({
         formId: formId,
-        phoneNumber: formData.telefono,
+        phoneNumber: formData.phone,
         code,
       });
       if (result.success) {
@@ -593,7 +608,7 @@ export function RegistroView({
             formData.verifiedSms = true;
             setPhoneOtpError("");
             const verificationState = {
-              telefono: formData.telefono,
+              telefono: formData.phone,
               email: formData.email,
               phoneVerified: formData.verifiedSms,
               emailVerified: formData.verifiedEmail,
@@ -638,7 +653,7 @@ export function RegistroView({
             formData.verifiedEmail = true;
             setEmailOtpError("");
             const verificationState = {
-              telefono: formData.telefono,
+              telefono: formData.phone,
               email: formData.email,
               phoneVerified: formData.verifiedSms,
               emailVerified: formData.verifiedEmail,
@@ -696,7 +711,7 @@ export function RegistroView({
     if (currentStep === 1) {
       if (validateAllStep1()) {
         const result = await registerRepository.checkDuplicate(
-          formData.telefono,
+          formData.phone,
           formData.email,
         );
         if (result.success && result.data?.duplicatedFields.length === 0) {
@@ -738,27 +753,11 @@ export function RegistroView({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const nameParts =  formData.firstName.split(/\s+/);
       const registroDto: IRegistroDTO = {
-        firstName: nameParts[0],
-        middleName: nameParts.length > 1 ? nameParts.splice(1).join(" ") : "",
-        paternalSurname: formData.paternalSurname,
-        maternalSurname: formData.maternalSurname,
-        telefono: formData.telefono,
-        email: formData.email,
-        marca: formData.marca,
-        modelo: formData.modelo,
-        anio: formData.anio,
-        placas: formData.placas,
-        color: formData.color,
-        estado: formData.estado,
-        ciudad: formData.ciudad,
-        comoTeEnteraste: formData.comoTeEnteraste,
-        verifiedSms: formData.verifiedSms,
-        verifiedEmail: formData.verifiedEmail,
+        ...formData,
+        formId: formId,
       };
       const result = await guardarDriverUseCase.execute(registroDto);
-      console.log("Resultado de registro:", result);
 
       if (result.success && result.data) {
         setSolicitudNum(`SPD-${result.data.applicantId}`);
@@ -773,7 +772,10 @@ export function RegistroView({
       } else {
         showToast({
           type: "danger",
-          message: "Ocurrió un error al registrar. Por favor, intenta nuevamente.",
+          message:
+            ((result.error?.message?.length || 0) > 0)
+            ? result.error?.message!
+            : "Ocurrió un error al registrar. Por favor, intenta nuevamente.",
         });
       }
     } finally {
@@ -808,8 +810,8 @@ export function RegistroView({
         return "Solo toma 2 minutos. Completa tus datos y verificaremos tu correo y teléfono.";
       case 2:
         return phoneOtpSent
-          ? `Se envió un código de 6 dígitos por SMS al <strong>${formData.telefono}</strong>`
-          : `Se enviará un código de 6 dígitos por SMS al <strong>${formData.telefono}</strong>`;
+          ? `Se envió un código de 6 dígitos por SMS al <strong>${formData.phone}</strong>`
+          : `Se enviará un código de 6 dígitos por SMS al <strong>${formData.phone}</strong>`;
       case 3:
         return emailOtpSent
           ? `Se envió un código de 6 dígitos al correo <strong>${formData.email}</strong>`
@@ -1025,32 +1027,32 @@ export function RegistroView({
                   <h3 className="form-section__title">Contacto</h3>
                   <div className="form-group__row">
                     <div
-                      className={`form-group ${errors.telefono ? "form-group--error" : ""} ${validFields.has("telefono") && !errors.telefono ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.phone ? "form-group--error" : ""} ${validFields.has("phone") && !errors.phone ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="telefono">
+                      <label className="form-group__label" htmlFor="phone">
                         Teléfono celular<span className="req">*</span>
                       </label>
                       <input
                         className="form-input"
                         type="tel"
-                        id="telefono"
+                        id="phone"
                         placeholder="10 dígitos"
                         maxLength={10}
                         autoComplete="tel"
                         inputMode="numeric"
-                        value={formData.telefono}
+                        value={formData.phone}
                         onChange={(e) =>
                           handleInputChange(
-                            "telefono",
+                            "phone",
                             e.target.value.replace(/\D/g, ""),
                           )
                         }
-                        onBlur={() => handleBlur("telefono")}
+                        onBlur={() => handleBlur("phone")}
                       />
-                      {errors.telefono && (
+                      {errors.phone && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.telefono}</span>
+                          <span>{errors.phone}</span>
                         </div>
                       )}
                     </div>
@@ -1088,135 +1090,135 @@ export function RegistroView({
                   <h3 className="form-section__title">Datos del vehículo</h3>
                   <div className="form-group__row">
                     <div
-                      className={`form-group ${errors.marca ? "form-group--error" : ""} ${validFields.has("marca") && !errors.marca ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.vehicleBrand ? "form-group--error" : ""} ${validFields.has("vehicleBrand") && !errors.vehicleBrand ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="marca">
+                      <label className="form-group__label" htmlFor="vehicleBrand">
                         Marca<span className="req">*</span>
                       </label>
                       <input
                         className="form-input"
                         type="text"
-                        id="marca"
+                        id="vehicleBrand"
                         placeholder="Ej. Toyota"
                         maxLength={30}
-                        value={formData.marca}
+                        value={formData.vehicleBrand}
                         onChange={(e) =>
-                          handleInputChange("marca", e.target.value)
+                          handleInputChange("vehicleBrand", e.target.value)
                         }
-                        onBlur={() => handleBlur("marca")}
+                        onBlur={() => handleBlur("vehicleBrand")}
                       />
-                      {errors.marca && (
+                      {errors.vehicleBrand && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.marca}</span>
+                          <span>{errors.vehicleBrand}</span>
                         </div>
                       )}
                     </div>
                     <div
-                      className={`form-group ${errors.modelo ? "form-group--error" : ""} ${validFields.has("modelo") && !errors.modelo ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.vehicleModel ? "form-group--error" : ""} ${validFields.has("vehicleModel") && !errors.vehicleModel ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="modelo">
+                      <label className="form-group__label" htmlFor="vehicleModel">
                         Modelo<span className="req">*</span>
                       </label>
                       <input
                         className="form-input"
                         type="text"
-                        id="modelo"
+                        id="vehicleModel"
                         placeholder="Ej. Corolla"
                         maxLength={50}
-                        value={formData.modelo}
+                        value={formData.vehicleModel}
                         onChange={(e) =>
-                          handleInputChange("modelo", e.target.value)
+                          handleInputChange("vehicleModel", e.target.value)
                         }
-                        onBlur={() => handleBlur("modelo")}
+                        onBlur={() => handleBlur("vehicleModel")}
                       />
-                      {errors.modelo && (
+                      {errors.vehicleModel && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.modelo}</span>
+                          <span>{errors.vehicleModel}</span>
                         </div>
                       )}
                     </div>
                   </div>
                   <div className="form-group__row">
                     <div
-                      className={`form-group ${errors.anio ? "form-group--error" : ""} ${validFields.has("anio") && !errors.anio ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.vehicleYear ? "form-group--error" : ""} ${validFields.has("vehicleYear") && !errors.vehicleYear ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="anio">
+                      <label className="form-group__label" htmlFor="vehicleYear">
                         Año<span className="req">*</span>
                       </label>
                       <input
                         className="form-input"
                         type="text"
-                        id="anio"
+                        id="vehicleYear"
                         placeholder="Ej. 2020"
                         maxLength={4}
                         inputMode="numeric"
-                        value={formData.anio}
+                        value={formData.vehicleYear}
                         onChange={(e) =>
                           handleInputChange(
-                            "anio",
+                            "vehicleYear",
                             e.target.value.replace(/\D/g, ""),
                           )
                         }
-                        onBlur={() => handleBlur("anio")}
+                        onBlur={() => handleBlur("vehicleYear")}
                       />
-                      {errors.anio && (
+                      {errors.vehicleYear && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.anio}</span>
+                          <span>{errors.vehicleYear}</span>
                         </div>
                       )}
                     </div>
                     <div
-                      className={`form-group ${errors.placas ? "form-group--error" : ""} ${validFields.has("placas") && !errors.placas ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.vehiclePlates ? "form-group--error" : ""} ${validFields.has("vehiclePlates") && !errors.vehiclePlates ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="placas">
+                      <label className="form-group__label" htmlFor="vehiclePlates">
                         Placas<span className="req">*</span>
                       </label>
                       <input
                         className="form-input"
                         type="text"
-                        id="placas"
+                        id="vehiclePlates"
                         placeholder="Ej. ABC1234"
                         maxLength={10}
                         style={{ textTransform: "uppercase" }}
-                        value={formData.placas}
+                        value={formData.vehiclePlates}
                         onChange={(e) =>
-                          handleInputChange("placas", e.target.value)
+                          handleInputChange("vehiclePlates", e.target.value)
                         }
-                        onBlur={() => handleBlur("placas")}
+                        onBlur={() => handleBlur("vehiclePlates")}
                       />
-                      {errors.placas && (
+                      {errors.vehiclePlates && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.placas}</span>
+                          <span>{errors.vehiclePlates}</span>
                         </div>
                       )}
                     </div>
                   </div>
                   <div
-                    className={`form-group ${errors.color ? "form-group--error" : ""} ${validFields.has("color") && !errors.color ? "form-group--success" : ""}`}
+                    className={`form-group ${errors.vehicleColor ? "form-group--error" : ""} ${validFields.has("vehicleColor") && !errors.vehicleColor ? "form-group--success" : ""}`}
                   >
-                    <label className="form-group__label" htmlFor="color">
+                    <label className="form-group__label" htmlFor="vehicleColor">
                       Color<span className="req">*</span>
                     </label>
                     <input
                       className="form-input"
                       type="text"
-                      id="color"
+                      id="vehicleColor"
                       placeholder="Ej. Blanco"
                       maxLength={30}
-                      value={formData.color}
+                      value={formData.vehicleColor}
                       onChange={(e) =>
-                        handleInputChange("color", e.target.value)
+                        handleInputChange("vehicleColor", e.target.value)
                       }
-                      onBlur={() => handleBlur("color")}
+                      onBlur={() => handleBlur("vehicleColor")}
                     />
-                    {errors.color && (
+                    {errors.vehicleColor && (
                       <div className="form-group__error">
                         <span className="icon">error</span>
-                        <span>{errors.color}</span>
+                        <span>{errors.vehicleColor}</span>
                       </div>
                     )}
                   </div>
@@ -1227,16 +1229,16 @@ export function RegistroView({
                   <h3 className="form-section__title">Ubicación</h3>
                   <div className="form-group__row">
                     <div
-                      className={`form-group ${errors.estado ? "form-group--error" : ""} ${validFields.has("estado") && !errors.estado ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.workStateId ? "form-group--error" : ""} ${validFields.has("workStateId") && !errors.workStateId ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="estado">
+                      <label className="form-group__label" htmlFor="workStateId">
                         Estado<span className="req">*</span>
                       </label>
                       <select
                         className="form-select"
-                        id="estado"
-                        value={formData.estado}
-                        onChange={(e) => handleEstadoChange(e.target.value)}
+                        id="workStateId"
+                        value={formData.workStateId}
+                        onChange={(e) => handleEstadoChange(Number(e.target.value))}
                         disabled={statesLoading}
                       >
                         <option value="">
@@ -1245,47 +1247,49 @@ export function RegistroView({
                             : "Selecciona un estado"}
                         </option>
                         {states.map((s) => (
-                          <option key={s.id} value={s.state}>
+                          <option key={s.id} value={s.id}>
                             {s.state}
                           </option>
                         ))}
                       </select>
-                      {errors.estado && (
+                      {errors.workStateId && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.estado}</span>
+                          <span>{errors.workStateId}</span>
                         </div>
                       )}
                     </div>
                     <div
-                      className={`form-group ${errors.ciudad ? "form-group--error" : ""} ${validFields.has("ciudad") && !errors.ciudad ? "form-group--success" : ""}`}
+                      className={`form-group ${errors.workCityId ? "form-group--error" : ""} ${validFields.has("workCityId") && !errors.workCityId ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="ciudad">
+                      <label className="form-group__label" htmlFor="workCityId">
                         Ciudad / Municipio<span className="req">*</span>
                       </label>
                       <select
                         className="form-select"
-                        id="ciudad"
-                        value={formData.ciudad}
+                        id="workCityId"
+                        value={formData.workCityId}
                         onChange={(e) => {
-                          handleInputChange("ciudad", e.target.value);
-                          validateField("ciudad", e.target.value);
+                          handleInputChange("workCityId", Number(e.target.value));
+                          validateField("workCityId", Number(e.target.value));
                         }}
-                        disabled={!formData.estado}
+                        disabled={!formData.workStateId}
                       >
                         <option value="">
-                          {formData.estado
+                          {formData.workStateId
                             ? "Selecciona una ciudad"
                             : "Primero selecciona un estado"}
                         </option>
                         {ciudades.map((ciudad) => (
-                          <option key={ciudad}>{ciudad}</option>
+                          <option key={ciudad.id} value={ciudad.id}>
+                            {ciudad.city}
+                          </option>
                         ))}
                       </select>
-                      {errors.ciudad && (
+                      {errors.workCityId && (
                         <div className="form-group__error">
                           <span className="icon">error</span>
-                          <span>{errors.ciudad}</span>
+                          <span>{errors.workCityId}</span>
                         </div>
                       )}
                     </div>
@@ -1296,21 +1300,21 @@ export function RegistroView({
                 <div className="form-section">
                   <h3 className="form-section__title">Información adicional</h3>
                   <div
-                    className={`form-group ${errors.comoTeEnteraste ? "form-group--error" : ""} ${validFields.has("comoTeEnteraste") && !errors.comoTeEnteraste ? "form-group--success" : ""}`}
+                    className={`form-group ${errors.referalSource ? "form-group--error" : ""} ${validFields.has("referalSource") && !errors.referalSource ? "form-group--success" : ""}`}
                   >
                     <label
                       className="form-group__label"
-                      htmlFor="comoTeEnteraste"
+                      htmlFor="referalSource"
                     >
                       ¿Cómo te enteraste de SPIDI?<span className="req">*</span>
                     </label>
                     <select
                       className="form-select"
-                      id="comoTeEnteraste"
-                      value={formData.comoTeEnteraste}
+                      id="referalSource"
+                      value={formData.referalSource}
                       onChange={(e) => {
-                        handleInputChange("comoTeEnteraste", e.target.value);
-                        validateField("comoTeEnteraste", e.target.value);
+                        handleInputChange("referalSource", e.target.value);
+                        validateField("referalSource", e.target.value);
                       }}
                     >
                       <option value="">Selecciona una opción</option>
@@ -1320,10 +1324,10 @@ export function RegistroView({
                       <option>Volante o cartel</option>
                       <option>Otro</option>
                     </select>
-                    {errors.comoTeEnteraste && (
+                    {errors.referalSource && (
                       <div className="form-group__error">
                         <span className="icon">error</span>
-                        <span>{errors.comoTeEnteraste}</span>
+                        <span>{errors.referalSource}</span>
                       </div>
                     )}
                   </div>
@@ -1566,7 +1570,7 @@ export function RegistroView({
                   </div>
                   <div className="summary-grid">
                     <div className="summary-item">
-                      <strong>Teléfono:</strong> {formData.telefono} ✓
+                      <strong>Teléfono:</strong> {formData.phone} ✓
                     </div>
                     <div className="summary-item">
                       <strong>Email:</strong> {formData.email} ✓
@@ -1577,20 +1581,20 @@ export function RegistroView({
                   <h3 className="form-section__title">Tu vehículo</h3>
                   <div className="summary-grid">
                     <div className="summary-item">
-                      <strong>Marca:</strong> {formData.marca}
+                      <strong>Marca:</strong> {formData.vehicleBrand}
                     </div>
                     <div className="summary-item">
-                      <strong>Modelo:</strong> {formData.modelo}
+                      <strong>Modelo:</strong> {formData.vehicleModel}
                     </div>
                     <div className="summary-item">
-                      <strong>Año:</strong> {formData.anio}
+                      <strong>Año:</strong> {formData.vehicleYear}
                     </div>
                     <div className="summary-item">
-                      <strong>Color:</strong> {formData.color}
+                      <strong>Color:</strong> {formData.vehicleColor}
                     </div>
                   </div>
                   <div className="summary-item" style={{ marginTop: "8px" }}>
-                    <strong>Placas:</strong> {formData.placas}
+                    <strong>Placas:</strong> {formData.vehiclePlates}
                   </div>
                 </div>
                 <div className="form-section">
@@ -1599,10 +1603,10 @@ export function RegistroView({
                   </h3>
                   <div className="summary-grid">
                     <div className="summary-item">
-                      <strong>Estado:</strong> {formData.estado}
+                      <strong>Estado:</strong> {formData.workStateName}
                     </div>
                     <div className="summary-item">
-                      <strong>Ciudad:</strong> {formData.ciudad}
+                      <strong>Ciudad:</strong> {formData.workCityName}
                     </div>
                   </div>
                 </div>

@@ -1,18 +1,21 @@
 export interface IRegistroDTO {
+  formId: string;
   firstName: string;
   middleName: string;
   paternalSurname: string;
   maternalSurname: string;
-  telefono: string;
+  phone: string;
   email: string;
-  marca: string;
-  modelo: string;
-  anio: string;
-  placas: string;
-  color: string;
-  estado: string;
-  ciudad: string;
-  comoTeEnteraste: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  vehicleYear: string;
+  vehiclePlates: string;
+  vehicleColor: string;
+  workStateId?: number;
+  workStateName: string;
+  workCityId?: number;
+  workCityName: string;
+  referalSource: string;
   verifiedSms: boolean;
   verifiedEmail: boolean;
 }
