@@ -11,8 +11,8 @@ const cspHeader = `
   frame-ancestors 'self';
   form-action 'self';
   block-all-mixed-content;
-  report-uri: ${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint};
-  report-to: csp-report=${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint}
+  report-uri ${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint};
+  report-to csp-endpoint;
   default-src 'self';
   base-uri 'self' ${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl};
   upgrade-insecure-requests;
@@ -22,7 +22,7 @@ const nextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   eslint: {
-    ignoreDuringBuilds: true, // <-- permite build aunque haya errores de lint
+    ignoreDuringBuilds: true,
   },
   output: 'standalone',
   async headers() {
