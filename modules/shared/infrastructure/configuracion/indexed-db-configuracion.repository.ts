@@ -16,7 +16,19 @@ export class IndexedDbConfiguracionRepository implements IConfiguracionRepositor
     if (existing) {
       await db.put(STORE_CONFIGURACIONES, { ...existing, value });
     } else {
-      await db.add(STORE_CONFIGURACIONES, { key, value });
+      try {
+        await db.add(STORE_CONFIGURACIONES, { key, value });
+      } catch (err) {
+        // Guard against concurrent set() calls hitting the unique index constraint
+        if (err instanceof DOMException && err.name === 'ConstraintError') {
+          const record = await db.getFromIndex(STORE_CONFIGURACIONES, 'by_key', key);
+          if (record) {
+            await db.put(STORE_CONFIGURACIONES, { ...record, value });
+          }
+        } else {
+          throw err;
+        }
+      }
     }
   }
 
