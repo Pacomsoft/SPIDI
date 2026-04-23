@@ -9,6 +9,9 @@ import { type IIdempotencyRepository } from "../../domain/contracts/idempotency-
 import { type ITokenRepository } from "../../domain/contracts/token-repository.interface";
 import { type ITokenDto } from "../../domain/contracts/token.dto";
 import { type IToastContext } from "../../domain/contracts/toast.interface";
+import { FetchError } from "../../domain/entities/fetch-error.class";
+import { type ProblemObject } from "../../domain/contracts/problem-object.type";
+import { version } from "@/package.json";
 
 const SPIDI_ID_KEY = "spidiId";
 const REFRESH_URL = "/api/v1/authorization/token/refresh";
@@ -35,6 +38,42 @@ export class FetchHttpClient implements IHttpClient {
     this.idempotencyRepository = deps?.idempotencyRepository;
     this.tokenRepository = deps?.tokenRepository;
     this.toastContext = deps?.toastContext;
+  }
+
+  private isProblemObject(body: unknown): body is ProblemObject {
+    return (
+      typeof body === "object" &&
+      body !== null &&
+      typeof (body as ProblemObject).status === "number" &&
+      typeof (body as ProblemObject).title === "string" &&
+      typeof (body as ProblemObject).type === "string"
+    );
+  }
+
+  private async parseBody(response: Response): Promise<unknown> {
+    try {
+      if(response.headers.has("content-type") && (response.headers.get("content-type")?.includes("application/json")
+        || response.headers.get("content-type")?.includes("application/problem+json"))) {
+        return await response.json();
+      } else {
+        return await response.text();
+      }
+    } catch {
+      return undefined;
+    }
+  }
+
+  private handleErrorResponse(body: unknown, status: number): never {
+    if (Array.isArray(body) && body.every((e) => typeof e === "string")) {
+      throw FetchError.fromErrors(body as string[], status);
+    }
+    if (this.isProblemObject(body)) {
+      throw FetchError.fromProblemObject(body);
+    }
+    if (typeof body === "string") {
+      throw FetchError.fromErrors(body, status);
+    }
+    throw FetchError.fromStatus(status);
   }
 
   private async resolveIdempotencyKey(url: string): Promise<string> {
@@ -125,15 +164,17 @@ export class FetchHttpClient implements IHttpClient {
       headers: {
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
+        "X-APP-VERSION": version,
+        "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
       },
     });
     await this.updateFromETag(url, response);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: (await response.json()) as T, status: response.status };
+    return { data: await response.json() as T, status: response.status };
   }
 
   async post<T>(
@@ -152,6 +193,8 @@ export class FetchHttpClient implements IHttpClient {
         ...contentTypeHeader,
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
+        "X-APP-VERSION": version,
+        "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
       },
@@ -164,9 +207,9 @@ export class FetchHttpClient implements IHttpClient {
     });
     await this.updateFromETag(url, response);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: (await response.json()) as T, status: response.status };
+    return { data: await response.json() as T, status: response.status };
   }
 
   async put<T>(
@@ -185,6 +228,8 @@ export class FetchHttpClient implements IHttpClient {
         ...contentTypeHeader,
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
+        "X-APP-VERSION": version,
+        "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
       },
@@ -197,9 +242,9 @@ export class FetchHttpClient implements IHttpClient {
     });
     await this.updateFromETag(url, response);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: (await response.json()) as T, status: response.status };
+    return { data: await response.json() as T, status: response.status };
   }
 
   async delete<T>(
@@ -215,14 +260,16 @@ export class FetchHttpClient implements IHttpClient {
       headers: {
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
+        "X-APP-VERSION": version,
+        "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
       },
     });
     await this.updateFromETag(url, response);
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: (await response.json()) as T, status: response.status };
+    return { data: await response.json() as T, status: response.status };
   }
 }

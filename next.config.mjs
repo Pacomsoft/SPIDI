@@ -18,8 +18,10 @@ const cspHeader = `
   ${useHttps ? 'block-all-mixed-content; upgrade-insecure-requests;' : ''}
 `;
 
+
 const nextConfig = {
   trailingSlash: true,
+  reactStrictMode: true,
   images: { unoptimized: true },
   eslint: {
     ignoreDuringBuilds: true,
@@ -28,23 +30,32 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   output: 'standalone',
+  poweredByHeader: false,
   async headers() {
     return [
       {
-        source: '/(.*)',
+        source: "/(.*)",
         headers: [
           {
-            key: 'Content-Security-Policy',
-            value: cspHeader.replace(/\n/g, ''),
+            key: "Content-Security-Policy",
+            value: cspHeader.replace(/\n/g, ""),
           },
-        ],
-      },
-      {
-        source: '/(.*)',
-        headers: [
           {
-            key: 'Reporting-Endpoints',
-            value: `csp-endpoint="${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint}"`,
+            key: "Reporting-Endpoints",
+            value: `csp_endpoint="${apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint}"`,
+          },
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), fullscreen=(self), geolocation=(self), publickey-credentials-get=(self), clipboard-read=(self), clipboard-write=(self), idle-detection=(self)",
+          },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains;",
           },
         ],
       },
