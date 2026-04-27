@@ -4,7 +4,8 @@ import "./globals.css"
 import "material-symbols";
 import { GlobalLoadingProvider } from "@/modules/shared/application/presentation/components/global-loading-provider"
 import { ToastProvider } from "@/modules/shared/application/presentation/components/toast-provider"
-import { MsalSetup } from "./msal-setup"
+import { NextAuthSetup } from "./next-auth-setup"
+import { auth } from "@/auth"
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -23,11 +24,12 @@ export const metadata: Metadata = {
   keywords: ["Repartidor", "Socio repartidor","Entregas a domicilio","Última milla","Gana dinero extra","Flexibilidad laboral","Trabaja cuando quieras","Aplicación móvil","Seguimiento en tiempo real","Soporte al cliente"],
   authors: [{ name: "SPIDI Team", url: "https://spidi.mx" }]
 }
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const session = await auth()
   return (
     <html lang="es" suppressHydrationWarning className={`${inter.variable} ${openSans.variable}`} data-scroll-behavior="smooth">
       <head>
@@ -35,13 +37,13 @@ export default function RootLayout({
         <meta name="googlebot" content="notranslate" />
       </head>
       <body className="font-sans antialiased">
-        <MsalSetup>
+        <NextAuthSetup session={session}>
           <GlobalLoadingProvider>
             <ToastProvider>
               {children}
             </ToastProvider>
           </GlobalLoadingProvider>
-        </MsalSetup>
+        </NextAuthSetup>
       </body>
     </html>
   )

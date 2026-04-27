@@ -1,4 +1,5 @@
 export interface IHttpConfig {
+  queryParams?: Record<string, string>;
   headers?: Record<string, string>;
 }
 

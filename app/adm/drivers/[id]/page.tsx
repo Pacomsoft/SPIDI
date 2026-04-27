@@ -2,7 +2,9 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useState, useEffect, useMemo, useRef } from "react"
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { authProvider } from "@/lib/auth"
 import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,6 +53,7 @@ import {
 } from "lucide-react"
 
 const moduleKey = "DRIVERS"
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 
 // Componentes UI simples
 const Label = ({ htmlFor, children, className = "" }: { htmlFor?: string; children: React.ReactNode; className?: string }) => (
@@ -1138,7 +1141,7 @@ export default function DriverDetallePage() {
   const canSeeInternalNotes = session?.role === "ADMIN_TI" || session?.role === "ADMIN_OPERACIONES"
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6 pb-12">
         {/* Toast */}
         {showToast && (
@@ -2773,3 +2776,4 @@ export default function DriverDetallePage() {
     </RoleGuard>
   )
 }
+

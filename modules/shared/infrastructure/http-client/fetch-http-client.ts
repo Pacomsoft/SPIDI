@@ -11,7 +11,7 @@ import { type ITokenDto } from "../../domain/contracts/token.dto";
 import { type IToastContext } from "../../domain/contracts/toast.interface";
 import { FetchError } from "../../domain/entities/fetch-error.class";
 import { type ProblemObject } from "../../domain/contracts/problem-object.type";
-import { version } from "@/package.json";
+import packageInfo from "@/package.json";
 
 const SPIDI_ID_KEY = "spidiId";
 const REFRESH_URL = "/api/v1/authorization/token/refresh";
@@ -52,8 +52,13 @@ export class FetchHttpClient implements IHttpClient {
 
   private async parseBody(response: Response): Promise<unknown> {
     try {
-      if(response.headers.has("content-type") && (response.headers.get("content-type")?.includes("application/json")
-        || response.headers.get("content-type")?.includes("application/problem+json"))) {
+      if (
+        response.headers.has("content-type") &&
+        (response.headers.get("content-type")?.includes("application/json") ||
+          response.headers
+            .get("content-type")
+            ?.includes("application/problem+json"))
+      ) {
         return await response.json();
       } else {
         return await response.text();
@@ -154,17 +159,38 @@ export class FetchHttpClient implements IHttpClient {
     return {};
   }
 
+  private buildUrl(url: string, config?: IHttpConfig): string {
+    const baseURL = this.baseURL.endsWith("/") ? this.baseURL.substring(0, this.baseURL.length - 1) : this.baseURL;
+    const urlSplit = url.split("?");
+    const urlOnly = urlSplit[0].startsWith("/") ? urlSplit[0] : `/${urlSplit[0]}`;
+    let paramsString = '';
+    if(urlSplit.length > 1) {
+      paramsString = urlSplit[1];
+    }
+    if(config?.queryParams && Object.keys(config.queryParams).length > 0) {
+      const currentParams = new URLSearchParams(paramsString);
+      for(const [key, value] of Object.entries(config.queryParams)) {
+        if(!currentParams.has(key)) {
+          currentParams.set(key, value);
+        }
+      }
+      paramsString = currentParams.toString();
+    }
+    return `${baseURL}${urlOnly}${paramsString ? `?${paramsString}` : ''}`;
+  }
+
   async get<T>(url: string, config?: IHttpConfig): Promise<IHttpResponse<T>> {
     const [appId, authHeader] = await Promise.all([
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
     ]);
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const urlWithParams = this.buildUrl(url, config);
+    const response = await fetch(urlWithParams, {
       method: "GET",
       headers: {
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
-        "X-APP-VERSION": version,
+        "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
@@ -174,7 +200,7 @@ export class FetchHttpClient implements IHttpClient {
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: await response.json() as T, status: response.status };
+    return { data: (await response.json()) as T, status: response.status };
   }
 
   async post<T>(
@@ -187,13 +213,14 @@ export class FetchHttpClient implements IHttpClient {
       this.resolveAuthorizationHeader(),
     ]);
     const contentTypeHeader = this.resolveContentTypeHeader(data);
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const urlWithParams = this.buildUrl(url, config);
+    const response = await fetch(`${urlWithParams}`, {
       method: "POST",
       headers: {
         ...contentTypeHeader,
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
-        "X-APP-VERSION": version,
+        "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
@@ -201,7 +228,7 @@ export class FetchHttpClient implements IHttpClient {
       body:
         data !== undefined
           ? data instanceof FormData
-            ? data as FormData
+            ? (data as FormData)
             : JSON.stringify(data)
           : undefined,
     });
@@ -209,7 +236,7 @@ export class FetchHttpClient implements IHttpClient {
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: await response.json() as T, status: response.status };
+    return { data: (await response.json()) as T, status: response.status };
   }
 
   async put<T>(
@@ -222,13 +249,14 @@ export class FetchHttpClient implements IHttpClient {
       this.resolveAuthorizationHeader(),
     ]);
     const contentTypeHeader = this.resolveContentTypeHeader(data);
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const urlWithParams = this.buildUrl(url, config);
+    const response = await fetch(`${urlWithParams}`, {
       method: "PUT",
       headers: {
         ...contentTypeHeader,
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
-        "X-APP-VERSION": version,
+        "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
@@ -236,7 +264,7 @@ export class FetchHttpClient implements IHttpClient {
       body:
         data !== undefined
           ? data instanceof FormData
-            ? data as FormData
+            ? (data as FormData)
             : JSON.stringify(data)
           : undefined,
     });
@@ -244,7 +272,7 @@ export class FetchHttpClient implements IHttpClient {
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: await response.json() as T, status: response.status };
+    return { data: (await response.json()) as T, status: response.status };
   }
 
   async delete<T>(
@@ -255,12 +283,13 @@ export class FetchHttpClient implements IHttpClient {
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
     ]);
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const urlWithParams = this.buildUrl(url, config);
+    const response = await fetch(`${urlWithParams}`, {
       method: "DELETE",
       headers: {
         "Idempotency-Key": await this.resolveIdempotencyKey(url),
         "X-APP-ID": appId,
-        "X-APP-VERSION": version,
+        "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
         ...authHeader,
         ...config?.headers,
@@ -270,6 +299,6 @@ export class FetchHttpClient implements IHttpClient {
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
-    return { data: await response.json() as T, status: response.status };
+    return { data: (await response.json()) as T, status: response.status };
   }
 }

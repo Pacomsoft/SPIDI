@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +25,7 @@ import {
   Loader2
 } from "lucide-react"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "CAPACITACION"
 
 // Tipos
@@ -259,7 +262,7 @@ export default function CapacitacionPage() {
   // Estado de error (toggle dummy)
   if (showError) {
     return (
-      <RoleGuard moduleKey={moduleKey}>
+      <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Capacitaciones</h1>
@@ -285,7 +288,7 @@ export default function CapacitacionPage() {
   // Estado vacío
   if (!loading && sortedTrainings.length === 0) {
     return (
-      <RoleGuard moduleKey={moduleKey}>
+      <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Capacitaciones</h1>
@@ -312,7 +315,7 @@ export default function CapacitacionPage() {
   }
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -542,3 +545,4 @@ export default function CapacitacionPage() {
     </RoleGuard>
   )
 }
+

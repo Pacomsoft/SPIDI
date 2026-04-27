@@ -1,15 +1,17 @@
 "use client"
 
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CreditCard, DollarSign, TrendingUp, Clock } from "lucide-react"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "PAGOS"
 
 export default function PagosPage() {
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>

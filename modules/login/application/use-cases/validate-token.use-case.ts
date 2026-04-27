@@ -1,15 +1,16 @@
 import { type IUseCase } from '@/modules/shared/domain/contracts/use-case.interface';
+import { type ITokenRepository } from '@/modules/shared/domain/contracts/token-repository.interface';
 import { type IAuthService } from '../../domain/contracts/auth-service.interface';
 import { type ISessionRepository } from '../../domain/contracts/session-repository.interface';
 import { type ILoginAttemptsRepository } from '../../domain/contracts/login-attempts-repository.interface';
-import { type IGraphApiService } from '../../domain/contracts/graph-api-service.interface';
-import { type IRoleMapper } from '../../domain/contracts/role-mapper.interface';
+import { type ISpidiAuthService } from '../../domain/contracts/spidi-auth-service.interface';
 import { type IValidateTokenInputDTO, type IValidateTokenResultDTO } from '../../domain/contracts/validate-token.dto';
 import { Session } from '../../domain/entities/session';
 import { UserRole } from '../../domain/value-objects/user-role';
 import { LoginFailedError } from '../../domain/errors/login-failed.error';
 import { TooManyAttemptsError } from '../../domain/errors/too-many-attempts.error';
 import { AccountDisabledError } from '../../domain/errors/account-disabled.error';
+import { FetchError } from '@/modules/shared/domain/entities/fetch-error.class';
 
 const LOCKOUT_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 2 * 60 * 1000;
@@ -20,8 +21,8 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
     private readonly authService: IAuthService,
     private readonly sessionRepository: ISessionRepository,
     private readonly attemptsRepository: ILoginAttemptsRepository,
-    private readonly graphApiService: IGraphApiService,
-    private readonly roleMapper: IRoleMapper,
+    private readonly spidiAuthService: ISpidiAuthService,
+    private readonly tokenRepository: ITokenRepository,
   ) {}
 
   async execute(input: IValidateTokenInputDTO): Promise<IValidateTokenResultDTO> {
@@ -33,22 +34,34 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
     }
 
     if (!tokenResult) {
-      throw new LoginFailedError('No se recibió respuesta de autenticación');
+      throw new LoginFailedError('No se recibio respuesta de autenticacion');
     }
 
-    const groups = await this.graphApiService.getUserGroups(tokenResult.accessToken);
-    const roleValue = this.roleMapper.fromGroups(groups);
+    let spidiResult;
+    try {
+      spidiResult = await this.spidiAuthService.authenticateWithEntraToken(tokenResult.accessToken);
+    } catch (error) {
+      await this.recordAndCheckLockout(error);
+    }
 
-    if (!roleValue) {
+    if (!spidiResult) {
+      throw new LoginFailedError('No se pudo autenticar con el servidor SPIDI');
+    }
+
+    await this.tokenRepository.addToken(spidiResult.spidiToken);
+
+    if (!spidiResult.roles.length) {
       throw new LoginFailedError('Tu cuenta no tiene un rol asignado en el sistema');
     }
 
-    const role = UserRole.create(roleValue);
+    const roleDto = spidiResult.roles[0];
+    const role = UserRole.create(roleDto);
     const session = Session.create(
       tokenResult.userId,
       tokenResult.userName,
       role.getDescription(),
       role.value,
+      roleDto.menus,
     );
 
     await this.sessionRepository.save(session);
@@ -85,6 +98,10 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
       throw new TooManyAttemptsError();
     }
 
-    throw new LoginFailedError('Credenciales no válidas, por favor vuelve a intentar.');
+    if(error instanceof FetchError) {
+      throw error;
+    }
+
+    throw new LoginFailedError('Credenciales no validas, por favor vuelve a intentar.');
   }
 }

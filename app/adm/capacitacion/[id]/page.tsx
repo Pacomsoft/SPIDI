@@ -1,13 +1,16 @@
 "use client"
 
 import { use } from "react"
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, BookOpen, Calendar, Tag } from "lucide-react"
 import { useRouter } from "next/navigation"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "CAPACITACION"
 
 type TrainingType = "Obligatorio" | "Opcional" | "Política de empresa"
@@ -52,7 +55,7 @@ export default function TrainingDetailPage({
   }
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -128,3 +131,5 @@ export default function TrainingDetailPage({
     </RoleGuard>
   )
 }
+
+

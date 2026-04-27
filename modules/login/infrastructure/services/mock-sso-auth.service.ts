@@ -1,6 +1,6 @@
 import { type IAuthService, type ITokenResultDTO } from '../../domain/contracts/auth-service.interface';
 
-/** @deprecated — replaced by MsalAuthService. For local dev without Azure credentials only. */
+/** @deprecated — replaced by NextAuthAuthService. For local dev without Azure credentials only. */
 export class MockSSOAuthService implements IAuthService {
   async initiateRedirect(): Promise<void> {
     // Simulate redirect delay then auto-complete for dev purposes

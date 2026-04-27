@@ -2,6 +2,7 @@
 
 import { IndexedDbSessionRepository } from "@/modules/login/infrastructure/repositories/indexed-db-session.repository"
 import { type UserRoleValue } from "@/modules/login/domain/value-objects/user-role"
+import { signOut } from "@/auth"
 
 // Re-exportar Role para compatibilidad con componentes existentes
 export type Role = UserRoleValue
@@ -15,7 +16,10 @@ export async function initSessionRepository(): Promise<void> {
 
 export const authProvider = {
   logout: async (): Promise<void> => {
-    await sessionRepository.clear()
+    await sessionRepository.clear();
+    await signOut({
+      redirectTo: '/login',
+    });
   },
 
   getSession: () => {
@@ -41,19 +45,6 @@ export const authProvider = {
 
   getRole: (): Role | null => {
     return (sessionRepository.findCurrentSync()?.role as Role) ?? null
-  },
-
-  setRole: async (role: Role): Promise<void> => {
-    const session = sessionRepository.findCurrentSync()
-    if (!session) return
-    const descriptions: Record<Role, string> = {
-      ADMIN_TI: "Administrador de TI",
-      ADMIN_OPERACIONES: "Administrador de Operaciones",
-      FINANZAS: "Finanzas",
-      RH: "Recursos Humanos",
-    }
-    const updated = session.withRole(role, descriptions[role])
-    await sessionRepository.save(updated)
   },
 }
 

@@ -319,3 +319,9 @@
   .dark .ql-picker-label {
     color: hsl(var(--foreground));
   }
+
+.spidi-sidebar-icon {
+    margin-left: -3px;
+    width: 24px !important;
+    height: 24px !important;
+}

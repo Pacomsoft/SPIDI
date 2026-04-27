@@ -3,7 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +27,7 @@ import {
 } from "lucide-react"
 import "react-quill-new/dist/quill.snow.css"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "CAPACITACION"
 
 // Editor WYSIWYG dinámico (sin SSR)
@@ -263,7 +266,7 @@ export default function CreateTrainingPage() {
     formData.type === "Obligatorio" || formData.type === "Opcional"
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6 pb-8">
         {/* Header */}
         <div className="flex items-center gap-4">
@@ -574,3 +577,4 @@ export default function CreateTrainingPage() {
     </RoleGuard>
   )
 }
+

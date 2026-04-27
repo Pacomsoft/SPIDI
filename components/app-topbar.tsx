@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useModuleAccessContext } from "@/modules/adm/application/presentation/components/guard-page/module-access.context"
 
 interface AppTopbarProps {
   breadcrumbs?: {
@@ -31,28 +32,23 @@ interface AppTopbarProps {
   }[]
 }
 
-const routeLabels: Record<string, string> = {
-  "/adm/home": "Inicio",
-  "/adm/aspirantes": "Aspirantes",
-  "/adm/drivers": "Drivers",
-  "/adm/capacitacion": "Capacitación",
-  "/adm/comunicacion": "Comunicación",
-  "/adm/contratos": "Contratos",
-  "/adm/pagos": "Pagos",
-}
-
 export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
   const pathname = usePathname()
-  
+  const { allowedModules } = useModuleAccessContext()
+
+  const routeLabels = React.useMemo(() => {
+    return Object.fromEntries(allowedModules.map((m) => [m.url, m.title]))
+  }, [allowedModules])
+
   // Generar breadcrumbs dinámicos si no se proporcionan
   const dynamicBreadcrumbs = React.useMemo(() => {
     if (breadcrumbs) return breadcrumbs
     
     const segments = pathname.split("/").filter(Boolean)
-    const crumbs: { label: string; href?: string }[] = [{ label: "Inicio", href: "/adm/home" }]
+    const crumbs: { label: string; href?: string }[] = [{ label: "/", href: "/adm/home" }]
     
     segments.forEach((segment, index) => {
-      const path = `/${segments.slice(0, index + 1).join("/")}`
+      const href = `/${segments.slice(0, index + 1).join("/")}`
       
       // Detectar si el segmento es un ID (UUID o número)
       const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) || 
@@ -62,23 +58,20 @@ export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
       if (isId) {
         label = "Detalle"
       } else {
-        label = routeLabels[path] || segment.charAt(0).toUpperCase() + segment.slice(1)
+        label = routeLabels[href] || segment.charAt(0).toUpperCase() + segment.slice(1)
       }
       
       if (index === segments.length - 1) {
         crumbs.push({ label })
       } else {
-        crumbs.push({ label, href: path })
+        crumbs.push({ label, href })
       }
     })
     
     return crumbs
-  }, [pathname, breadcrumbs])
+  }, [pathname, breadcrumbs, routeLabels])
   const [notifications] = React.useState([
-    { id: 1, title: "Nuevo aspirante registrado", time: "Hace 5 min", read: false },
-    { id: 2, title: "Driver completó capacitación", time: "Hace 1 hora", read: false },
-    { id: 3, title: "Pago procesado exitosamente", time: "Hace 2 horas", read: true },
-  ])
+  ] as { id: number; title: string; time: string; read: boolean }[])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 

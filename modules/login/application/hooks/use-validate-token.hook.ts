@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useMsal } from '@azure/msal-react';
-import { InteractionStatus } from '@azure/msal-browser';
+import { useSession } from 'next-auth/react';
 import { type IValidateTokenUseCase } from '../../domain/contracts/validate-token-use-case.interface';
 import { TooManyAttemptsError } from '../../domain/errors/too-many-attempts.error';
 import { AccountDisabledError } from '../../domain/errors/account-disabled.error';
+import { FetchError } from '@/modules/shared/domain/entities/fetch-error.class';
 
 type ValidateErrorType = 'invalid_credentials' | 'too_many_attempts' | 'account_disabled' | 'generic';
 
@@ -20,13 +20,13 @@ export function useValidateToken(
   validateTokenUseCase: IValidateTokenUseCase,
 ): IUseValidateTokenResult {
   const router = useRouter();
-  const { inProgress } = useMsal();
+  const { status } = useSession();
   const [isProcessing, setIsProcessing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<ValidateErrorType | null>(null);
 
   useEffect(() => {
-    if (inProgress !== InteractionStatus.None) return;
+    if (status === 'loading') return;
 
     const redirectAfterLogin =
       typeof window !== 'undefined'
@@ -48,6 +48,11 @@ export function useValidateToken(
           setErrorType('account_disabled');
           setError(err.message);
           router.replace('/login?error=account_disabled');
+        } else if (err instanceof FetchError) {
+          console.warn('Error de red o del servidor durante la validación del token:', err);
+          setErrorType('generic');
+          setError(err.message);
+          router.replace('/login?error=generic');
         } else {
           setErrorType('invalid_credentials');
           setError('Credenciales no válidas, por favor vuelve a intentar.');
@@ -55,7 +60,7 @@ export function useValidateToken(
         }
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inProgress]);
+  }, [status]);
 
   return { isProcessing, error, errorType };
 }

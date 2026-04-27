@@ -1,13 +1,16 @@
 "use client"
 
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "CONTRATOS"
 
 export default function ContratosPage() {
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Contratos</h1>

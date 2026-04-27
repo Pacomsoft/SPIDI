@@ -2,25 +2,21 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { authProvider } from "@/lib/auth"
-import { getHomePageForRole } from "@/lib/roles"
+import { initSessionRepository } from "@/lib/auth"
+import { createGetHomePageUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
+const getHomePageUseCase = createGetHomePageUseCase()
 
 export default function AdminRootPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Verificar si está autenticado
-    const session = authProvider.getSession()
-    
-    if (!session) {
-      // Si no está autenticado, redirigir a login
-      router.replace("/login")
-      return
+    const redirect = async () => {
+      await initSessionRepository()
+      const result = await getHomePageUseCase.execute()
+      router.replace(result.homePage)
     }
-
-    // Si está autenticado, redirigir a la página home según el rol
-    const homePage = getHomePageForRole(session.role)
-    router.replace(homePage)
+    redirect()
   }, [router])
 
   return null

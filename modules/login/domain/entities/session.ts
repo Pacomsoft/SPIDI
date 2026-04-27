@@ -1,4 +1,5 @@
 import { type UserRoleValue } from '../value-objects/user-role';
+import { type IMenuAccess } from '../contracts/spidi-auth-service.interface';
 
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
 
@@ -7,6 +8,7 @@ interface ISessionSchema {
   userName: string;
   userRole: string;
   role: UserRoleValue;
+  menus: IMenuAccess[];
   expiresAt: number;
 }
 
@@ -18,24 +20,27 @@ export class Session {
     userName: string,
     userRole: string,
     role: UserRoleValue,
+    menus: IMenuAccess[],
   ): Session {
     return new Session({
       userId,
       userName,
       userRole,
       role,
+      menus,
       expiresAt: Date.now() + SESSION_DURATION_MS,
     });
   }
 
   static restore(data: ISessionSchema): Session {
-    return new Session(data);
+    return new Session({ ...data, menus: data.menus ?? [] });
   }
 
   get userId(): string { return this._entity.userId; }
   get userName(): string { return this._entity.userName; }
   get userRole(): string { return this._entity.userRole; }
   get role(): UserRoleValue { return this._entity.role; }
+  get menus(): IMenuAccess[] { return this._entity.menus; }
   get expiresAt(): number { return this._entity.expiresAt; }
 
   isExpired(): boolean {
@@ -44,10 +49,6 @@ export class Session {
 
   renew(): Session {
     return new Session({ ...this._entity, expiresAt: Date.now() + SESSION_DURATION_MS });
-  }
-
-  withRole(role: UserRoleValue, userRole: string): Session {
-    return new Session({ ...this._entity, role, userRole });
   }
 
   toPlainObject(): ISessionSchema {

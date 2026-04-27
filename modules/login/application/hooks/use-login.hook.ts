@@ -48,6 +48,9 @@ export function useLogin(
     } else if (errorParam === 'account_disabled') {
       setErrorType('account_disabled');
       setError('Tu cuenta está deshabilitada. Contacta al administrador.');
+    } else if (errorParam === 'generic') {
+      setErrorType('generic');
+      setError('Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde.');
     }
     // Clean URL param without reload
     const params = new URLSearchParams(searchParams?.toString());

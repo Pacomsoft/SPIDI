@@ -3,7 +3,9 @@
 import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -35,6 +37,7 @@ import {
   Download
 } from "lucide-react"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "COMUNICACION"
 
 // Tipos
@@ -499,7 +502,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
   // Loading state
   if (loading) {
     return (
-      <RoleGuard moduleKey={moduleKey}>
+      <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <Skeleton className="h-10 w-10" />
@@ -523,7 +526,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
   // Not found state
   if (!detail) {
     return (
-      <RoleGuard moduleKey={moduleKey}>
+      <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
         <div className="space-y-6">
           <Button variant="ghost" onClick={() => router.push('/adm/complaints')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -541,7 +544,7 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
   }
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6">
         {/* Toast */}
         {showToast && (
@@ -992,3 +995,5 @@ export default function ComplaintDetailPage({ params }: { params: Promise<{ id: 
     </RoleGuard>
   )
 }
+
+

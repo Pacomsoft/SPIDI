@@ -1,6 +1,8 @@
 "use client"
 
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/modules/adm/application/presentation/components/role-guard"
+import { createCheckModuleAccessUseCase } from "@/modules/adm/infrastructure/dependency-injection"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +38,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { IndexedDbConfiguracionRepository } from "@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository"
 
+const checkModuleAccessUseCase = createCheckModuleAccessUseCase()
 const moduleKey = "DRIVERS"
 const configuracionRepository = new IndexedDbConfiguracionRepository()
 
@@ -574,7 +577,7 @@ export default function DriversPage() {
   }
 
   return (
-    <RoleGuard moduleKey={moduleKey}>
+    <RoleGuard moduleKey={moduleKey} checkModuleAccessUseCase={checkModuleAccessUseCase}>
       <div className="space-y-6">
         {/* Card principal */}
         <Card>

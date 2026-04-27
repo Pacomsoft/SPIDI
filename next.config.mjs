@@ -1,23 +1,26 @@
-const isDev = process.env.NODE_ENV === 'development';
-const useHttps = process.env.USE_HTTPS === 'true';
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-const cpsReportEndpoint = '/api/v1/reporting/csp-reports';
+const isDev = process.env.NODE_ENV === "development";
+const useHttps = process.env.USE_HTTPS === "true";
+const urlBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const apiUrl = urlBase.endsWith("/") ? urlBase.substring(0, urlBase.length - 1) : urlBase;
+const cpsReportEndpoint = "/api/v1/reporting/csp-reports";
 
 const cspHeader = `
-  script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''};
+  script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''} ${apiUrl} https://localhost:3000;
   style-src 'self' 'unsafe-inline' fonts.googleapis.com;
   img-src 'self' data: blob:;
   font-src 'self' fonts.gstatic.com;
   frame-ancestors 'self';
-  form-action 'self';
-  report-uri ${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint};
-  report-to csp-endpoint;
+  form-action 'self' https://login.microsoftonline.com;
+  connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com ${apiUrl};
+  report-uri ${apiUrl}${cpsReportEndpoint};
+  report-to csp-report=${apiUrl}${cpsReportEndpoint};
   default-src 'self';
-  base-uri 'self' ${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl};
-  ${useHttps ? 'block-all-mixed-content; upgrade-insecure-requests;' : ''}
+  base-uri 'self' ${apiUrl};
+  object-src 'none';  
+  ${useHttps ? "block-all-mixed-content; upgrade-insecure-requests;" : ""}
 `;
-
+// Rompe Next.js; validar en prod
+// require-trusted-types-for [missing] Consider requiring Trusted Types for scripts to lock down DOM XSS injection sinks. You can do this by adding "require-trusted-types-for 'script'" to your policy.
 
 const nextConfig = {
   trailingSlash: true,
@@ -26,10 +29,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  output: 'standalone',
+  output: "standalone",
   poweredByHeader: false,
   async headers() {
     return [
@@ -42,7 +42,7 @@ const nextConfig = {
           },
           {
             key: "Reporting-Endpoints",
-            value: `csp_endpoint="${apiUrl.endsWith("/") ? apiUrl.slice(0, -1) : apiUrl}${cpsReportEndpoint}"`,
+            value: `csp-endpoint="${apiUrl}${cpsReportEndpoint}"`,
           },
           {
             key: "Permissions-Policy",
