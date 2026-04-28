@@ -31,7 +31,7 @@ export class ApiApplicantsRepository implements IApplicantRepository {
       if (filters.dateTo) queryParams.dateTo = filters.dateTo;
 
       const response = await this.httpClient.get<{ items: IApplicantListItemDTO[]; total: number }>(
-        API_ENDPOINTS.APPLICANTS,
+        API_ENDPOINTS.APPLICANT,
         { queryParams },
       );
       return { success: true, data: response.data };
