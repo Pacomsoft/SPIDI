@@ -23,7 +23,7 @@ export class ApiDriversRepository implements IDriverRepository {
       if (filters.lastOrderStore) queryParams.lastOrderStore = filters.lastOrderStore;
 
       const response = await this.httpClient.get<{ items: IDriverListItemDTO[]; total: number }>(
-        API_ENDPOINTS.DRIVERS, { queryParams }
+        API_ENDPOINTS.DRIVER, { queryParams }
       );
       return { success: true, data: response.data };
     } catch (error) {
