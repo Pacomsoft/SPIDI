@@ -1,27 +1,5 @@
-const isDev = process.env.NODE_ENV === "development";
-const useHttps = process.env.USE_HTTPS === "true";
-const serverUrl = process.env.NEXT_PUBLIC_URL || "https://localhost:3000";
-const urlBase = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3000";
-const apiUrl = urlBase.endsWith("/") ? urlBase.substring(0, urlBase.length - 1) : urlBase;
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://localhost:3000").replace(/\/$/, "");
 const cpsReportEndpoint = "/api/v1/reporting/csp-reports";
-
-const cspHeader = `
-  script-src 'self' ${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''};
-  style-src 'self' 'unsafe-inline' fonts.googleapis.com;
-  img-src 'self' data: blob:;
-  font-src 'self' fonts.gstatic.com;
-  frame-ancestors 'self';
-  form-action 'self' https://login.microsoftonline.com;
-  connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com ${apiUrl};
-  report-uri ${apiUrl}${cpsReportEndpoint};
-  report-to csp-report=${apiUrl}${cpsReportEndpoint};
-  default-src 'self';
-  base-uri 'self' ${apiUrl};
-  object-src 'none';  
-  ${useHttps ? "block-all-mixed-content; upgrade-insecure-requests;" : ""}
-`;
-// Rompe Next.js; validar en prod
-// require-trusted-types-for [missing] Consider requiring Trusted Types for scripts to lock down DOM XSS injection sinks. You can do this by adding "require-trusted-types-for 'script'" to your policy.
 
 const nextConfig = {
   trailingSlash: true,
@@ -37,10 +15,6 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "Content-Security-Policy",
-            value: cspHeader.replace(/\n/g, ""),
-          },
           {
             key: "Reporting-Endpoints",
             value: `csp-endpoint="${apiUrl}${cpsReportEndpoint}"`,
