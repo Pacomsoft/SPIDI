@@ -7,7 +7,7 @@ import { Icon } from '@/components/ui/icon';
 import { SpidiLogo } from '@/components/ui/spidi-logo';
 import { useModuleAccessContext } from '@/modules/adm/application/presentation/components/guard-page/module-access.context';
 import { type IAdmSessionPort } from '@/modules/adm/domain/contracts/adm-session-port.interface';
-
+import { useConfirmDialog } from '@/modules/shared/application/hooks/use-confirm-dialog.hook';
 
 import {
   Sidebar,
@@ -42,6 +42,7 @@ interface IAppSidebarProps {
 export function AppSidebar({ sessionPort }: IAppSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { confirm, ConfirmDialog } = useConfirmDialog();
   const [comunicacionOpen, setComunicacionOpen] = React.useState(false);
 
   const { sessionInfo, isLoading, allowedModules } = useModuleAccessContext();
@@ -57,6 +58,8 @@ export function AppSidebar({ sessionPort }: IAppSidebarProps) {
     : allowedModules.filter((item) => item.visible);
 
   const handleLogout = async () => {
+    const confirmed = await confirm({ text: '¿Estás seguro que deseas cerrar sesión?' });
+    if (!confirmed) return;
     await sessionPort.clearSession();
     router.push('/login');
   };
@@ -215,6 +218,7 @@ export function AppSidebar({ sessionPort }: IAppSidebarProps) {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      {ConfirmDialog}
     </Sidebar>
   );
 }

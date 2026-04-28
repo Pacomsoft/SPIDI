@@ -12,9 +12,9 @@ import { type IToastContext } from "../../domain/contracts/toast.interface";
 import { FetchError } from "../../domain/entities/fetch-error.class";
 import { type ProblemObject } from "../../domain/contracts/problem-object.type";
 import packageInfo from "@/package.json";
+import { API_ENDPOINTS } from "@/modules/shared/domain/contracts/api-endpoints.constants";
 
 const SPIDI_ID_KEY = "spidiId";
-const REFRESH_URL = "/api/v1/authorization/token/refresh";
 const SESSION_EXPIRED_MSG = "La sesión ha expirado";
 
 export interface IFetchHttpClientDeps {
@@ -132,7 +132,7 @@ export class FetchHttpClient implements IHttpClient {
       formData.append("refreshToken", token.refreshToken);
       formData.append("expirationToken", token.expirationToken.toISOString());
 
-      const response = await fetch(`${this.baseURL}${REFRESH_URL}`, {
+      const response = await fetch(`${this.baseURL}${API_ENDPOINTS.REFRESH_URL}`, {
         method: "POST",
         body: formData,
       });

@@ -7,9 +7,7 @@ import {
 import { v7 as uuidv7 } from 'uuid';
 import { FetchError } from '@/modules/shared/domain/entities/fetch-error.class';
 import { ProblemObject } from '@/modules/shared/domain/contracts/problem-object.type';
-
-const ENTRA_ACCESS_URL = 'api/v1/authorization/entra-access';
-const ME_URL = 'api/v1/authorization/me';
+import { API_ENDPOINTS } from '@/modules/shared/domain/contracts/api-endpoints.constants';
 const DEFAULT_EXPIRATION_MS = 60 * 60 * 1000; // 1 hora
 
 interface IEntraAccessResponse {
@@ -72,7 +70,7 @@ export class SpidiEntraAuthService implements ISpidiAuthService {
   private async exchangeEntraToken(msAccessToken: string): Promise<ITokenDto> {
     const formData = new FormData();
     formData.append('msAccessToken', msAccessToken);
-    const response = await fetch(`${this.baseURL}${ENTRA_ACCESS_URL}`, {
+    const response = await fetch(`${this.baseURL}${API_ENDPOINTS.ENTRA_ACCESS_URL}`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -94,7 +92,7 @@ export class SpidiEntraAuthService implements ISpidiAuthService {
   }
 
   private async getUserRoles(spidiAccessToken: string): Promise<IRoleDto[]> {
-    const response = await fetch(`${this.baseURL}${ME_URL}`, {
+    const response = await fetch(`${this.baseURL}${API_ENDPOINTS.ME_URL}`, {
       headers: { 
         Authorization: `Bearer ${spidiAccessToken}`,
         'Idempotency-Key': uuidv7(),

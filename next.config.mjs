@@ -1,11 +1,12 @@
 const isDev = process.env.NODE_ENV === "development";
 const useHttps = process.env.USE_HTTPS === "true";
-const urlBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const serverUrl = process.env.NEXT_PUBLIC_URL || "https://localhost:3000";
+const urlBase = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3000";
 const apiUrl = urlBase.endsWith("/") ? urlBase.substring(0, urlBase.length - 1) : urlBase;
 const cpsReportEndpoint = "/api/v1/reporting/csp-reports";
 
 const cspHeader = `
-  script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''} ${apiUrl} https://localhost:3000;
+  script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''} ${apiUrl} ${serverUrl};
   style-src 'self' 'unsafe-inline' fonts.googleapis.com;
   img-src 'self' data: blob:;
   font-src 'self' fonts.gstatic.com;

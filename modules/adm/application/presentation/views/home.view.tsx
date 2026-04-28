@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useConfirmDialog } from '@/modules/shared/application/hooks/use-confirm-dialog.hook';
 import { LogOut, User, Clock, ShieldCheck } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ interface IHomeViewProps {
 export function HomeView({ getSessionInfoUseCase, sessionPort }: IHomeViewProps) {
   const router = useRouter();
   const [session, setSession] = useState<ISessionInfoDTO | null>(null);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     const loadSession = async () => {
@@ -27,6 +29,8 @@ export function HomeView({ getSessionInfoUseCase, sessionPort }: IHomeViewProps)
   }, [getSessionInfoUseCase]);
 
   const handleLogout = async () => {
+    const confirmed = await confirm({ text: '¿Estás seguro que deseas cerrar sesión?' });
+    if (!confirmed) return;
     await sessionPort.clearSession();
     router.push('/login');
   };
@@ -95,6 +99,7 @@ export function HomeView({ getSessionInfoUseCase, sessionPort }: IHomeViewProps)
           </div>
         </CardContent>
       </Card>
+      {ConfirmDialog}
     </div>
   );
 }

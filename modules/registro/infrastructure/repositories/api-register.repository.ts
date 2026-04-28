@@ -8,6 +8,7 @@ import { ICheckDuplicateResult } from "../../domain/contracts/check-duplicate-re
 import { type IRegistroDTO } from "../../domain/contracts/registro.dto";
 import { type IRegisterApplicantDto } from "../../domain/contracts/register-applicant.dto";
 import { objectToFormData } from "@/modules/shared/domain/utils/object-to-formdata.util";
+import { API_ENDPOINTS } from "@/modules/shared/domain/contracts/api-endpoints.constants";
 
 interface IApiState {
   id: number;
@@ -24,7 +25,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
   async getStates(): Promise<IStateDTO[]> {
     try {
       const response = await this.httpClient.get<IApiState[]>(
-        "api/v1/register/states",
+        API_ENDPOINTS.REGISTRATION_STATES,
       );
       return response.data.map((item) => ({
         id: item.id,
@@ -43,7 +44,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData({ formId, phoneNumber });
       const response = await this.httpClient.post<IVerificationResult>(
-        "api/v1/otp/send-sms",
+        API_ENDPOINTS.REGISTRATION_REQUEST_SMS,
         formData,
       );
       return {
@@ -69,7 +70,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData({ formId, phoneNumber, code });
       const response = await this.httpClient.post<IVerificationResult>(
-        "api/v1/otp/validate-sms",
+        API_ENDPOINTS.REGISTRATION_VALIDATE_SMS,
         formData,
       );
       return {
@@ -94,7 +95,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData({ formId, email });
       const response = await this.httpClient.post<IVerificationResult>(
-        "api/v1/otp/send-email",
+        API_ENDPOINTS.REGISTRATION_REQUEST_EMAIL,
         formData,
       );
       return {
@@ -120,7 +121,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {      
       const formData = objectToFormData({ formId, email, code });
       const response = await this.httpClient.post<IVerificationResult>(
-        "api/v1/otp/validate-email",
+        API_ENDPOINTS.REGISTRATION_VALIDATE_EMAIL,
         formData,
       );
       return {
@@ -145,7 +146,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData({ phoneNumber, email });
       const response = await this.httpClient.post<ICheckDuplicateResult>(
-        "api/v1/driver/check-duplicate",
+        API_ENDPOINTS.REGISTRATION_CHECK_DUPLICATE,
         formData,
       );
       return {
@@ -167,7 +168,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData(driver);
       const response = await this.httpClient.post<IRegisterApplicantDto>(
-        "api/v1/driver",
+         API_ENDPOINTS.DRIVER,
         formData,
       );
       return {
