@@ -146,7 +146,7 @@ export class ApiRegisterRepository implements IRegisterRepository {
     try {
       const formData = objectToFormData({ phoneNumber, email });
       const response = await this.httpClient.post<ICheckDuplicateResult>(
-        API_ENDPOINTS.REGISTRATION_CHECK_DUPLICATE,
+        API_ENDPOINTS.DRIVER_CHECK_DUPLICATE,
         formData,
       );
       return {

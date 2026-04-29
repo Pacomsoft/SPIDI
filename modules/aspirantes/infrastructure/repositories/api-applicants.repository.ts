@@ -87,7 +87,7 @@ export class ApiApplicantsRepository implements IApplicantRepository {
       if (filters.applicationStatus) queryParams.applicationStatus = filters.applicationStatus;
 
       const response = await this.httpClient.get<Blob>(
-        API_ENDPOINTS.APPLICANTS_EXPORT(format),
+        API_ENDPOINTS.APPLICANT_EXPORT(format),
         { queryParams },
       );
       return { success: true, data: response.data };

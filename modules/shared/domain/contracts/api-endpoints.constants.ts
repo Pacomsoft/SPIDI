@@ -2,11 +2,12 @@ export const API_ENDPOINTS = {
   // Drivers
   DRIVER: '/api/v1/driver',
   DRIVER_BY_ID: (id: string) => `/api/v1/driver/${id}`,
-  DRIVERS_EXPORT: (format: string) => `/api/v1/driver/export/${format}`,
+  DRIVER_EXPORT: (format: string) => `/api/v1/driver/export/${format}`,
+  DRIVER_CHECK_DUPLICATE: '/api/v1/driver/check-duplicate',
   // Applicants
   APPLICANT: '/api/v1/applicant',
   APPLICANT_BY_ID: (id: string) => `/api/v1/applicant/${id}`,
-  APPLICANTS_EXPORT: (format: string) => `/api/v1/applicant/export/${format}`,
+  APPLICANT_EXPORT: (format: string) => `/api/v1/applicant/export/${format}`,
   // Catalogs
   CATALOGS_STATES: '/api/v1/catalogs/states',
   CATALOGS_BANKS: '/api/v1/catalogs/banks',
@@ -29,5 +30,4 @@ export const API_ENDPOINTS = {
   REGISTRATION_VALIDATE_SMS: '/api/v1/otp/validate-sms',  
   REGISTRATION_REQUEST_EMAIL: '/api/v1/otp/send-email',
   REGISTRATION_VALIDATE_EMAIL: '/api/v1/otp/validate-email',
-  REGISTRATION_CHECK_DUPLICATE: '/api/v1/register/check-duplicate',
 } as const;

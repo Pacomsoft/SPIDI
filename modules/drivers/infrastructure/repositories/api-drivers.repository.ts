@@ -71,7 +71,7 @@ export class ApiDriversRepository implements IDriverRepository {
       if (filters.stateOfCountry) queryParams.stateOfCountry = filters.stateOfCountry;
       if (filters.lastOrderStore) queryParams.lastOrderStore = filters.lastOrderStore;
 
-      const response = await this.httpClient.get<Blob>(API_ENDPOINTS.DRIVERS_EXPORT(format), { queryParams });
+      const response = await this.httpClient.get<Blob>(API_ENDPOINTS.DRIVER_EXPORT(format), { queryParams });
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: { statusCode: (error as { statusCode?: number }).statusCode, message: error instanceof Error ? error.message : 'Error' } };
