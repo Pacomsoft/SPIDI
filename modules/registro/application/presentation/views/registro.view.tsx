@@ -119,7 +119,12 @@ const FIELDS: FieldConfig[] = [
     max: 30,
     msg: "Ingresa el color del vehículo",
   },
-  { id: "workStateId", required: true, type: "select", msg: "Selecciona un estado" },
+  {
+    id: "workStateId",
+    required: true,
+    type: "select",
+    msg: "Selecciona un estado",
+  },
   {
     id: "workCityId",
     required: true,
@@ -261,7 +266,12 @@ export function RegistroView({
           if (now - timestamp < twentyFourHours) {
             if (cachedVerification) {
               try {
-                const verificationState = JSON.parse(cachedVerification) as IRegistroDTO & { phoneVerified: boolean; emailVerified: boolean }; 
+                const verificationState = JSON.parse(
+                  cachedVerification,
+                ) as IRegistroDTO & {
+                  phoneVerified: boolean;
+                  emailVerified: boolean;
+                };
                 if (
                   verificationState.phone === data.phone &&
                   verificationState.phoneVerified
@@ -299,7 +309,10 @@ export function RegistroView({
               referalSource: String(data.referalSource ?? ""),
               phoneVerified: phoneVerified,
               emailVerified: emailVerified,
-            } as IRegistroDTO & { phoneVerified: boolean; emailVerified: boolean });
+            } as IRegistroDTO & {
+              phoneVerified: boolean;
+              emailVerified: boolean;
+            });
           } else {
             void configuracionRepository.remove(
               IndexedDbConstantes.REGISTRO_CACHE,
@@ -324,8 +337,8 @@ export function RegistroView({
       }
     };
     void load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); //(fix elimina la race condition) 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); //(fix elimina la race condition)
 
   // Sync ciudades when states load (populates cities for cached/selected estado)
   useEffect(() => {
@@ -397,13 +410,16 @@ export function RegistroView({
     return !err;
   };
 
-  const handleInputChange = (id: string, value: string | number ) => {
+  const handleInputChange = (id: string, value: string | number) => {
     const cfg = FIELDS.find((f) => f.id === id);
-    let newValue: string | number | undefined = value ?? (typeof value === "string" ? "" : undefined);
-    if(typeof newValue === "number" && newValue === 0) {
+    let newValue: string | number | undefined =
+      value ?? (typeof value === "string" ? "" : undefined);
+    if (typeof newValue === "number" && newValue === 0) {
       newValue = undefined;
     }
-    if (cfg?.transform) newValue = typeof newValue === "string" ? cfg.transform(newValue) : newValue;
+    if (cfg?.transform)
+      newValue =
+        typeof newValue === "string" ? cfg.transform(newValue) : newValue;
 
     if (id === "phone" && formData.phone !== newValue) {
       if (formData.verifiedSms || phoneOtpSent) {
@@ -435,9 +451,9 @@ export function RegistroView({
 
     const updatedData = { ...formData, [id]: newValue ?? "" } as IRegistroDTO;
 
-    if(id === "workCityId" && formData.workCityId !== newValue) {
+    if (id === "workCityId" && formData.workCityId !== newValue) {
       const matchCity = ciudades.find((c) => c.id === Number(newValue));
-      if(matchCity) {
+      if (matchCity) {
         updatedData.workCityName = matchCity.city;
         updatedData.workCityId = matchCity.id;
       }
@@ -459,15 +475,21 @@ export function RegistroView({
     validateField(id);
   };
 
-  const handleEstadoChange = (workStateId?: number) => {    
+  const handleEstadoChange = (workStateId?: number) => {
     const match = states.find((s) => s.id === workStateId);
-    const updatedData = { ...formData, workStateName: match ? match.state: "", workStateId: workStateId, workCityName: "", workCityId: undefined } as IRegistroDTO;
-    if(match) {
+    const updatedData = {
+      ...formData,
+      workStateName: match ? match.state : "",
+      workStateId: workStateId,
+      workCityName: "",
+      workCityId: undefined,
+    } as IRegistroDTO;
+    if (match) {
       setCiudades(match ? match.cities.map((c) => c) : []);
     } else {
-      setCiudades([]); 
+      setCiudades([]);
     }
-    
+
     setFormData(updatedData);
 
     void configuracionRepository.set(
@@ -550,9 +572,16 @@ export function RegistroView({
           return;
         }
       }
+      let message =
+        "No se pudo enviar el código a su correo electrónico. Intenta más tarde.";
+      if ((result.data?.status || 0) in EstadoVerificacionOtp) {
+        message = getMessageFromEstadoVerificacion(
+          result.data?.status as EstadoVerificacionOtp,
+        );
+      }
       showToast({
         type: "danger",
-        message: "No se pudo enviar el código SMS. Intenta más tarde.",
+        message,
       });
       setPhoneOtpSent(false);
       return;
@@ -581,10 +610,16 @@ export function RegistroView({
           return;
         }
       }
+      let message =
+        "No se pudo enviar el código a su correo electrónico. Intenta más tarde.";
+      if ((result.data?.status || 0) in EstadoVerificacionOtp) {
+        message = getMessageFromEstadoVerificacion(
+          result.data?.status as EstadoVerificacionOtp,
+        );
+      }
       showToast({
         type: "danger",
-        message:
-          "No se pudo enviar el código a su correo electrónico. Intenta más tarde.",
+        message,
       });
       setEmailOtpSent(false);
       return;
@@ -773,9 +808,9 @@ export function RegistroView({
         showToast({
           type: "danger",
           message:
-            ((result.error?.message?.length || 0) > 0)
-            ? result.error?.message!
-            : "Ocurrió un error al registrar. Por favor, intenta nuevamente.",
+            (result.error?.message?.length || 0) > 0
+              ? result.error?.message!
+              : "Ocurrió un error al registrar. Por favor, intenta nuevamente.",
         });
       }
     } finally {
@@ -1092,7 +1127,10 @@ export function RegistroView({
                     <div
                       className={`form-group ${errors.vehicleBrand ? "form-group--error" : ""} ${validFields.has("vehicleBrand") && !errors.vehicleBrand ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="vehicleBrand">
+                      <label
+                        className="form-group__label"
+                        htmlFor="vehicleBrand"
+                      >
                         Marca<span className="req">*</span>
                       </label>
                       <input
@@ -1117,7 +1155,10 @@ export function RegistroView({
                     <div
                       className={`form-group ${errors.vehicleModel ? "form-group--error" : ""} ${validFields.has("vehicleModel") && !errors.vehicleModel ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="vehicleModel">
+                      <label
+                        className="form-group__label"
+                        htmlFor="vehicleModel"
+                      >
                         Modelo<span className="req">*</span>
                       </label>
                       <input
@@ -1144,7 +1185,10 @@ export function RegistroView({
                     <div
                       className={`form-group ${errors.vehicleYear ? "form-group--error" : ""} ${validFields.has("vehicleYear") && !errors.vehicleYear ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="vehicleYear">
+                      <label
+                        className="form-group__label"
+                        htmlFor="vehicleYear"
+                      >
                         Año<span className="req">*</span>
                       </label>
                       <input
@@ -1173,7 +1217,10 @@ export function RegistroView({
                     <div
                       className={`form-group ${errors.vehiclePlates ? "form-group--error" : ""} ${validFields.has("vehiclePlates") && !errors.vehiclePlates ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="vehiclePlates">
+                      <label
+                        className="form-group__label"
+                        htmlFor="vehiclePlates"
+                      >
                         Placas<span className="req">*</span>
                       </label>
                       <input
@@ -1231,14 +1278,19 @@ export function RegistroView({
                     <div
                       className={`form-group ${errors.workStateId ? "form-group--error" : ""} ${validFields.has("workStateId") && !errors.workStateId ? "form-group--success" : ""}`}
                     >
-                      <label className="form-group__label" htmlFor="workStateId">
+                      <label
+                        className="form-group__label"
+                        htmlFor="workStateId"
+                      >
                         Estado<span className="req">*</span>
                       </label>
                       <select
                         className="form-select"
                         id="workStateId"
                         value={formData.workStateId}
-                        onChange={(e) => handleEstadoChange(Number(e.target.value))}
+                        onChange={(e) =>
+                          handleEstadoChange(Number(e.target.value))
+                        }
                         disabled={statesLoading}
                       >
                         <option value="">
@@ -1270,7 +1322,10 @@ export function RegistroView({
                         id="workCityId"
                         value={formData.workCityId}
                         onChange={(e) => {
-                          handleInputChange("workCityId", Number(e.target.value));
+                          handleInputChange(
+                            "workCityId",
+                            Number(e.target.value),
+                          );
                           validateField("workCityId", Number(e.target.value));
                         }}
                         disabled={!formData.workStateId}
