@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 const useHttps = process.env.USE_HTTPS === 'true';
-const serverBaseUrl = process.env.NEXTAUTH_URL || 'https://localhost:3000';
+const serverBaseUrl = process.env.AUTH_URL || 'https://localhost:3000';
 const urlBase = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3000';
 const apiUrl = !urlBase.endsWith('/') ? `${urlBase}/` : urlBase;
 const serverUrl = !serverBaseUrl.endsWith('/') ? `${serverBaseUrl}/` : serverBaseUrl;
