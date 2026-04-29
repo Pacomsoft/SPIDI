@@ -6,7 +6,7 @@ import { GlobalLoadingProvider } from "@/modules/shared/application/presentation
 import { ToastProvider } from "@/modules/shared/application/presentation/components/toast-provider";
 import { NextAuthSetup } from "./next-auth-setup";
 import { auth } from "@/auth";
-import { createNonceProvider } from "@/modules/shared/infrastructure/dependency-injection";
+import { createNonceProvider } from "@/modules/shared/infrastructure/server-dependency-injection";
 
 const inter = Inter({
   subsets: ["latin"],
