@@ -3,10 +3,11 @@ import type { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 const useHttps = process.env.USE_HTTPS === 'true';
-const serverUrl = process.env.NEXT_PUBLIC_URL || 'https://localhost:3000';
+const serverBaseUrl = process.env.NEXT_PUBLIC_URL || 'https://localhost:3000';
 const urlBase = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3000';
-const apiUrl = urlBase.endsWith('/') ? urlBase.slice(0, -1) : urlBase;
-const cspReportEndpoint = '/api/v1/reporting/csp-reports';
+const apiUrl = !urlBase.endsWith('/') ? `${urlBase}/` : urlBase;
+const serverUrl = !serverBaseUrl.endsWith('/') ? `${serverBaseUrl}/` : serverBaseUrl;
+const cspReportEndpoint = 'api/v1/reporting/csp-reports';
 
 function buildCspHeader(nonce: string): string {
   return [

@@ -1,5 +1,6 @@
-const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "https://localhost:3000").replace(/\/$/, "");
-const cpsReportEndpoint = "/api/v1/reporting/csp-reports";
+const urlBase = process.env.NEXT_PUBLIC_API_URL || "https://localhost:3000";
+const apiUrl = !urlBase.endsWith('/') ? `${urlBase}/` : urlBase;
+const cpsReportEndpoint = "api/v1/reporting/csp-reports";
 
 const nextConfig = {
   trailingSlash: true,
