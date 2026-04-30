@@ -4,8 +4,6 @@ import "./globals.css";
 import "material-symbols";
 import { GlobalLoadingProvider } from "@/modules/shared/application/presentation/components/global-loading-provider";
 import { ToastProvider } from "@/modules/shared/application/presentation/components/toast-provider";
-import { NextAuthSetup } from "./next-auth-setup";
-import { auth } from "@/auth";
 import { createNonceProvider } from "@/modules/shared/infrastructure/server-dependency-injection";
 
 const inter = Inter({
@@ -42,10 +40,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [session, nonce] = await Promise.all([
-    auth(),
-    createNonceProvider().getNonce(),
-  ]);
+  const nonce = await createNonceProvider().getNonce();
   return (
     <html
       lang="es"
@@ -59,12 +54,11 @@ export default async function RootLayout({
         {nonce && <meta name="csp-nonce" content={nonce} />}
       </head>
       <body className="font-sans antialiased">
-        <NextAuthSetup session={session}>
-          <GlobalLoadingProvider>
-            <ToastProvider>{children}</ToastProvider>
-          </GlobalLoadingProvider>
-        </NextAuthSetup>
+        <GlobalLoadingProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </GlobalLoadingProvider>
       </body>
     </html>
   );
 }
+

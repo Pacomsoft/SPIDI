@@ -5,7 +5,7 @@ import { type IValidateTokenUseCase } from '../domain/contracts/validate-token-u
 import { type IEnsureTokenValidUseCase } from '../domain/contracts/ensure-token-valid-use-case.interface';
 import { IndexedDbSessionRepository } from './repositories/indexed-db-session.repository';
 import { IndexedDbLoginAttemptsRepository } from './repositories/indexed-db-login-attempts.repository';
-import { NextAuthAuthService } from './services/next-auth-auth.service';
+import { EntraPkceAuthService } from './services/entra-pkce-auth.service';
 import { SpidiEntraAuthService } from './services/spidi-entra-auth.service';
 import { SpidiTokenRefreshService } from './services/spidi-token-refresh.service';
 import { InitiateLoginUseCase } from '../application/use-cases/login.use-case';
@@ -22,19 +22,17 @@ export function createLoginAttemptsRepository(): ILoginAttemptsRepository {
 }
 
 export function createLoginUseCase(): ILoginUseCase {
-  const authService = new NextAuthAuthService();
+  const authService = new EntraPkceAuthService();
   const attemptsRepository = createLoginAttemptsRepository();
   return new InitiateLoginUseCase(authService, attemptsRepository);
 }
 
 export function createValidateTokenUseCase(): IValidateTokenUseCase {
-  const authService = new NextAuthAuthService();
   const sessionRepository = createSessionRepository();
   const attemptsRepository = createLoginAttemptsRepository();
   const spidiAuthService = new SpidiEntraAuthService(process.env.NEXT_PUBLIC_API_URL ?? '');
   const tokenRepository = new IndexedDbTokenRepository();
   return new ValidateTokenUseCase(
-    authService,
     sessionRepository,
     attemptsRepository,
     spidiAuthService,

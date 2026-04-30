@@ -2,7 +2,6 @@
 
 import { IndexedDbSessionRepository } from "@/modules/login/infrastructure/repositories/indexed-db-session.repository"
 import { type UserRoleValue } from "@/modules/login/domain/value-objects/user-role"
-import { signOut } from "@/auth"
 
 // Re-exportar Role para compatibilidad con componentes existentes
 export type Role = UserRoleValue
@@ -17,9 +16,9 @@ export async function initSessionRepository(): Promise<void> {
 export const authProvider = {
   logout: async (): Promise<void> => {
     await sessionRepository.clear();
-    await signOut({
-      redirectTo: '/login',
-    });
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   },
 
   getSession: () => {
@@ -47,5 +46,4 @@ export const authProvider = {
     return (sessionRepository.findCurrentSync()?.role as Role) ?? null
   },
 }
-
 

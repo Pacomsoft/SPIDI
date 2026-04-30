@@ -1,17 +1,19 @@
 # SPIDI - Sistema de Gestión Integral de Drivers
 
-Sistema administrativo completo para la gestión de conductores, capacitaciones, documentos y comunicación. Desarrollado con Next.js 15, shadcn/ui, Tailwind CSS y tema personalizado "HEB V3".
+Sistema administrativo para la gestión de conductores, capacitaciones, documentos y comunicación en HEB México. Desarrollado con Next.js 15 App Router, arquitectura hexagonal + DDD, autenticación PKCE con Microsoft Entra ID y tema personalizado "HEB V3".
 
 ## 🚀 Tecnologías
 
-- **Next.js 15.5.12** - Framework de React con App Router
-- **TypeScript** - Tipado estático
-- **Tailwind CSS 4.0** - Framework de utilidades CSS
-- **shadcn/ui** - Componentes de UI reutilizables
-- **react-quill-new** - Editor WYSIWYG (React 18 compatible)
-- **date-fns** - Manipulación de fechas
-- **Lucide React** - Iconos SVG
-- **Docker** - Contenedores para desarrollo
+- **Next.js 15** — Framework de React con App Router (`output: "standalone"`)
+- **TypeScript** — Tipado estático
+- **Tailwind CSS 4** — Framework de utilidades CSS
+- **shadcn/ui** — Componentes de UI reutilizables (tema HEB V3, colores OKLCH)
+- **axios** — Cliente HTTP para el flujo PKCE con Microsoft Entra ID
+- **idb** — IndexedDB (sesión, tokens, configuración)
+- **react-quill-new** — Editor WYSIWYG (React 18 compatible)
+- **date-fns** — Manipulación de fechas
+- **Lucide React** — Iconos SVG
+- **Docker** — Contenedores para desarrollo
 
 ## 📋 Módulos Implementados
 
@@ -69,37 +71,49 @@ Sistema administrativo completo para la gestión de conductores, capacitaciones,
 - Dashboard principal con métricas
 - Acceso rápido a módulos
 
-## 🔐 Sistema de Autenticación y Roles
+## 🔐 Autenticación — PKCE con Microsoft Entra ID
 
-El proyecto implementa un sistema de roles y permisos por módulo:
+Autenticación mediante **Authorization Code + PKCE** (flujo de cliente público, sin `client_secret`). No depende de `next-auth`.
+
+### Flujo
+
+1. `InitiateLoginUseCase` genera el code verifier/challenge PKCE y redirige a Microsoft
+2. Microsoft redirige a `/validate-token?code=XXX&state=YYY`
+3. `useExchangeCode` intercambia el código con Microsoft (via axios) y guarda el MS token en `sessionStorage`
+4. Redirige a `/auth/spidi-token`
+5. `useGetSpidiToken` envía el MS token al backend SPIDI (`POST /api/v1/authorization/entra-access`) y obtiene la sesión
+6. La sesión se persiste en IndexedDB y se redirige al home según rol
+
+### Variables de entorno
+
+```env
+NEXT_PUBLIC_MICROSOFT_ENTRA_CLIENT_ID=    # Client ID de la app en Azure AD
+NEXT_PUBLIC_MICROSOFT_ENTRA_TENANT_ID=    # Tenant ID
+NEXT_PUBLIC_MICROSOFT_ENTRA_REDIRECT_URI= # Ej: https://<domain>/validate-token
+NEXT_PUBLIC_API_URL=                       # URL base del backend SPIDI
+```
 
 ### Roles Disponibles
-- **Super Admin** - Acceso total
-- **Admin** - Acceso amplio
-- **HR** - Recursos humanos
-- **Operations** - Operaciones
-- **Finance** - Finanzas
-- **Viewer** - Solo lectura
-
-### Permisos por Módulo
-Cada rol tiene permisos específicos (read, create, update, delete) para cada módulo. Ver [lib/roles.ts](lib/roles.ts).
+- **Super Admin** — Acceso total
+- **Admin** — Acceso amplio
+- **HR** — Recursos humanos
+- **Operations** — Operaciones
+- **Finance** — Finanzas
+- **Viewer** — Solo lectura
 
 ### Protección de Rutas
-- **ProtectedRoute** - Verifica autenticación
-- **RoleGuard** - Valida permisos por módulo
+- `AuthGuard` — Verifica sesión en IndexedDB, redirige a `/login` si no hay sesión
+- `RoleGuard` / `GuardPage` — Valida permisos por módulo
 - Rutas públicas: `/login`, `/denied`
-- Rutas protegidas: Todo bajo `/(dashboard)`
+- Rutas protegidas: Todo bajo `/adm`
 
-### Características de Autenticación
-✅ Login SSO mock (preparado para integración real)  
-✅ Sistema de roles con permisos granulares  
-✅ Sesión con expiración de 8 horas  
-✅ Logout funcional  
-✅ Página de acceso denegado (`/denied`)  
-✅ Renovación automática de sesión  
-✅ UI responsive mobile-first  
-
-Ver documentación completa: [docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)
+### Características
+✅ PKCE OAuth 2.0 con Microsoft Entra ID  
+✅ Sesión persistida en IndexedDB  
+✅ Renovación automática de tokens  
+✅ Roles con permisos granulares por módulo  
+✅ Guard de autenticación y autorización por módulo  
+✅ Logout funcional (limpia IndexedDB)
 
 ## 🏃 Inicio Rápido
 
@@ -109,36 +123,35 @@ Ver documentación completa: [docs/AUTH_FLOW.md](docs/AUTH_FLOW.md)
 # Instalar dependencias
 npm install
 
-# Iniciar servidor de desarrollo
+# Iniciar servidor de desarrollo (HTTPS experimental)
 npm run dev
+
+# Build de producción
+npm run build
+
+# Servidor de producción (escucha en 127.0.0.1, detrás de nginx)
+npm start
 ```
 
-El servidor estará disponible en [http://localhost:3000](http://localhost:3000)
+El servidor de desarrollo estará disponible en `https://localhost:3000`.
+
+> **Nota:** En producción, el servidor escucha en `127.0.0.1` y nginx actúa como reverse proxy SSL en el puerto 443. La `REDIRECT_URI` de Azure AD debe apuntar a `https://<domain>/validate-token`.
 
 ### Opción 2: Con Docker
 
 ```bash
-# Iniciar contenedor (instala deps automáticamente)
-docker-compose up
-
-# Detener
-docker-compose down
-
-# Reconstruir si cambias dependencias
-docker-compose up --build
+docker-compose up           # Iniciar
+docker-compose down         # Detener
+docker-compose up --build   # Reconstruir si cambian dependencias
 ```
 
-### Flujo de Demo
+### Flujo de Autenticación
 
-1. Navega a `http://localhost:3000`
+1. Navega a `https://<domain>`
 2. Serás redirigido a `/login`
-3. Click en "Iniciar sesión" (SSO mock)
-4. Accederás al dashboard `/home`
-5. Explora los módulos desde el sidebar
-6. Prueba la búsqueda avanzada en Aspirantes/Drivers
-7. Crea una capacitación con el editor WYSIWYG
-8. Revisa documentos y alertas de vencimiento en Drivers
-9. Click "Cerrar Sesión" para volver al login
+3. Click en "Iniciar sesión con Microsoft"
+4. Autentícate en Microsoft Entra ID
+5. Serás redirigido a `/validate-token` → `/auth/spidi-token` → home según rol
 
 ## ✨ Características Destacadas
 
@@ -184,127 +197,109 @@ Sistema de búsqueda con **6 patrones automáticos**:
 - **Navegación colapsable** en móvil
 - **Select y botones** que no desbordan contenedor
 
-- Colores en espacio OKLCH para mejor consistencia perceptual
+- Colores en espacio OKLCH para mejor consistencia perceptual (primary: naranja cálido, secondary: azul)
 - Modo claro y oscuro configurados
 - Radio de borde: 1.1rem
 - Fuente principal: Inter
-- Variables CSS personalizadas para fácil modificación
-
-### Colores Principales
-
-**Modo Claro:**
-- Primary: Naranja cálido
-- Secondary: Azul
-- Background: Gris muy claro
-- Foreground: Gris oscuro
-
-**Modo Oscuro:**
-- Primary: Naranja cálido
-- Secondary: Azul
-- Background: Gris oscuro
-- Foreground: Blanco
-
-## 🏃 Scripts Disponibles
-
-```bash
-# Desarrollo
-npm run dev
-
-# Construcción para producción
-npm run build
-
-# Iniciar servidor de producción
-npm start
-
-# Linting
-npm run lint
-```
 
 ## 📂 Estructura del Proyecto
 
+El proyecto sigue **Arquitectura Hexagonal + DDD** estrictamente. Toda la lógica de negocio vive en `modules/`, no en `app/`.
+
 ```
 .
-├── app/
-│   ├── layout.tsx                    # Layout raíz con providers
+├── app/                              # Rutas Next.js (solo enrutamiento)
+│   ├── layout.tsx                    # Layout raíz
 │   ├── page.tsx                      # Redirect condicional
-│   ├── globals.css                   # Estilos globales y tema
-│   ├── login/
-│   │   └── page.tsx                  # Login SSO mock
-│   ├── denied/
-│   │   └── page.tsx                  # Acceso denegado
-│   └── (dashboard)/                  # Rutas protegidas con layout
-│       ├── layout.tsx                # Layout con sidebar y topbar
-│       ├── home/
-│       │   └── page.tsx              # Dashboard principal
-│       ├── aspirantes/
-│       │   ├── page.tsx              # Listado de aspirantes
-│       │   └── [id]/
-│       │       └── page.tsx          # Detalle de aspirante
-│       ├── drivers/
-│       │   ├── page.tsx              # Listado de drivers
-│       │   └── [id]/
-│       │       └── page.tsx          # Detalle de driver (2757 líneas)
-│       ├── capacitacion/
-│       │   ├── page.tsx              # Listado de capacitaciones
-│       │   └── create/
-│       │       └── page.tsx          # Crear capacitación
-│       ├── comunicacion/
-│       │   └── page.tsx              # Gestión de comunicación
-│       ├── complaints/
-│       │   ├── page.tsx              # Listado de quejas
-│       │   └── [id]/
-│       │       └── page.tsx          # Detalle de queja
-│       ├── contratos/
-│       │   └── page.tsx              # Gestión de contratos
-│       └── pagos/
-│           └── page.tsx              # Gestión de pagos
+│   ├── globals.css                   # Estilos globales y tema HEB V3
+│   ├── login/                        # Página de login
+│   ├── denied/                       # Acceso denegado
+│   ├── validate-token/               # Callback OAuth PKCE (intercambio con Microsoft)
+│   ├── auth/spidi-token/             # Intercambio MS token → SPIDI session
+│   ├── registro/                     # Flujo de registro
+│   └── adm/                         # Rutas protegidas (ver sección de refactoring)
+├── modules/                          # Lógica de negocio (hexagonal + DDD)
+│   ├── login/                        # Autenticación PKCE
+│   ├── adm/                          # Layout admin, sidebar, guards de módulo
+│   ├── aspirantes/                   # Módulo aspirantes ✅ refactorizado
+│   ├── drivers/                      # Módulo drivers ✅ refactorizado
+│   ├── confirmacion/                 # Confirmación de acciones
+│   ├── denied/                       # Vista de acceso denegado
+│   ├── registro/                     # Registro de conductores
+│   ├── verificar/                    # Verificación OTP
+│   └── shared/                       # Cross-cutting: HTTP client, IndexedDB, hooks
 ├── components/
-│   ├── ui/                           # shadcn/ui components
-│   │   ├── alert.tsx
-│   │   ├── avatar.tsx
-│   │   ├── badge.tsx
-│   │   ├── breadcrumb.tsx
-│   │   ├── button.tsx
-│   │   ├── calendar.tsx
-│   │   ├── card.tsx
-│   │   ├── date-range-picker.tsx
-│   │   ├── dropdown-menu.tsx
-│   │   ├── input.tsx
-│   │   ├── label.tsx
-│   │   ├── popover.tsx
-│   │   ├── select.tsx
-│   │   ├── separator.tsx
-│   │   ├── sheet.tsx
-│   │   ├── sidebar.tsx
-│   │   ├── skeleton.tsx
-│   │   ├── table.tsx
-│   │   ├── tabs.tsx
-│   │   ├── textarea.tsx
-│   │   └── tooltip.tsx
-│   ├── app-sidebar.tsx               # Sidebar con menú y logout
-│   ├── app-topbar.tsx                # Topbar con breadcrumb
-│   ├── protected-route.tsx           # Protección de autenticación
-│   └── role-guard.tsx                # Validación de permisos
+│   ├── ui/                           # shadcn/ui (NO editar directamente)
+│   └── app-topbar.tsx                # Topbar con breadcrumb
 ├── lib/
-│   ├── auth.ts                       # Auth provider mock
-│   ├── roles.ts                      # Sistema de roles y permisos
+│   ├── auth.ts                       # authProvider (logout, isAuthenticated, getSession)
 │   └── utils.ts                      # Utilidades (cn, normalizeText)
-├── hooks/
-│   └── use-mobile.tsx                # Hook para detectar mobile
-├── docs/
-│   ├── AUTH_FLOW.md                  # Flujo de autenticación
-│   └── RN_SPIDI.md                   # Notas de release
-├── docker-compose.yml                # Configuración Docker
-├── .dockerignore                     # Archivos ignorados por Docker
+├── .github/
+│   ├── copilot-instructions.md       # Instrucciones para GitHub Copilot
+│   └── agents/webadmin.agent.md      # Agente especializado en UI/UX
+├── next.config.mjs                   # trailingSlash, standalone, security headers
 ├── components.json                   # Configuración shadcn/ui
-├── tailwind.config.ts                # Configuración Tailwind + tema
-├── next.config.mjs                   # Configuración Next.js
-├── postcss.config.js                 # PostCSS config
-├── tsconfig.json                     # TypeScript config
-└── package.json                      # Dependencias y scripts
+└── package.json
 ```
 
-## 🎨 Uso de shadcn/ui
+### Estructura de cada módulo (hexagonal)
+
+```
+modules/<name>/
+├── domain/            # Sin dependencias externas: contratos, entidades, errores
+├── application/       # Casos de uso, hooks, vistas (solo depende de domain/)
+└── infrastructure/    # Implementaciones concretas + dependency-injection.ts
+```
+
+## 🔄 Rutas pendientes de refactorizar a arquitectura hexagonal
+
+Las siguientes rutas en `app/adm/` tienen lógica de negocio, estado y llamadas HTTP directamente en los archivos de página (`page.tsx`). Deben migrarse al patrón hexagonal: crear un módulo en `modules/`, separar dominio/aplicación/infraestructura y que `app/adm/<ruta>/page.tsx` solo monte el view correspondiente.
+
+| Ruta | Archivo | Estado |
+|------|---------|--------|
+| `/adm/capacitacion` | `app/adm/capacitacion/page.tsx` | ⚠️ Lógica inline (useState, fetch, sorting, export) |
+| `/adm/capacitacion/create` | `app/adm/capacitacion/create/page.tsx` | ⚠️ Lógica inline (WYSIWYG, form, IndexedDB directo) |
+| `/adm/capacitacion/[id]` | `app/adm/capacitacion/[id]/page.tsx` | ⚠️ Lógica inline (detalle, fetch por ID) |
+| `/adm/comunicacion` | `app/adm/comunicacion/page.tsx` | ⚠️ Placeholder sin módulo hexagonal |
+| `/adm/complaints` | `app/adm/complaints/page.tsx` | ⚠️ Lógica inline (lista, filtros, búsqueda, fechas) |
+| `/adm/complaints/[id]` | `app/adm/complaints/[id]/page.tsx` | ⚠️ Lógica inline (detalle, adjuntos, respuestas) |
+| `/adm/contratos` | `app/adm/contratos/page.tsx` | ⚠️ Placeholder sin módulo hexagonal |
+| `/adm/pagos` | `app/adm/pagos/page.tsx` | ⚠️ Placeholder sin módulo hexagonal |
+
+**Rutas ya refactorizadas** (usar como referencia):
+
+| Ruta | Módulo | Estado |
+|------|--------|--------|
+| `/adm/home` | `modules/adm` | ✅ Hexagonal |
+| `/adm/aspirantes` | `modules/aspirantes` | ✅ Hexagonal |
+| `/adm/aspirantes/[id]` | `modules/aspirantes` | ✅ Hexagonal |
+| `/adm/drivers` | `modules/drivers` | ✅ Hexagonal |
+| `/adm/drivers/[id]` | `modules/drivers` | ✅ Hexagonal |
+
+**Patrón a seguir al refactorizar:**
+
+```
+modules/<nombre>/
+├── domain/contracts/          # Interfaces, DTOs
+├── domain/entities/           # Entidades de dominio
+├── application/use-cases/     # Casos de uso (IUseCase<TInput, TOutput>)
+├── application/hooks/         # Hooks de React (reciben use-cases como parámetros)
+├── application/presentation/  # Views + components (solo presentación)
+└── infrastructure/
+    ├── services/              # Implementaciones concretas
+    └── dependency-injection.ts # Composición de dependencias
+```
+
+```tsx
+// app/adm/<ruta>/page.tsx — solo esto:
+import { XxxView } from '@/modules/<nombre>/application/presentation/views/xxx.view';
+import { createXxxModule } from '@/modules/<nombre>/infrastructure/dependency-injection';
+
+const module = createXxxModule();
+export default function Page() {
+  return <XxxView useCases={module.useCases} />;
+}
+```
 
 **Componentes instalados**:
 - Alert, Avatar, Badge, Breadcrumb, Button
@@ -373,107 +368,62 @@ docker-compose down      # Detener
 docker-compose up --build # Reconstruir
 ```
 
-## 📝 Scripts Disponibles
-
-```bash
-npm run dev      # Desarrollo (http://localhost:3000)
-npm run build    # Build para producción
-npm start        # Servidor de producción
-npm run lint     # Verificar código
-```
-## 📦 Dependencias Principales
-
-```json
-{
-  "next": "^15.5.12",
-  "react": "^18",
-  "react-dom": "^18",
-  "react-quill-new": "^3.8.3",
-  "date-fns": "^4.1.0",
-  "lucide-react": "^0.575.0",
-  "@radix-ui/react-*": "múltiples componentes",
-  "tailwindcss": "^4.0.0"
-}
-```
-
 ## 🚀 Estado del Proyecto
 
-### ✅ Implementado (v1.2)
-- ✅ Sistema de autenticación SSO mock
-- ✅ Sistema de roles y permisos granulares
-- ✅ Módulo Aspirantes (completo con búsqueda avanzada)
-- ✅ Módulo Drivers (completo con documentos y beneficiarios)
-- ✅ Módulo Capacitaciones (completo con editor WYSIWYG)
-- ✅ Módulo Comunicación/Complaints (completo)
-- ✅ Búsqueda inteligente con 6 patrones
+### ✅ Implementado
+- ✅ Autenticación PKCE con Microsoft Entra ID (sin next-auth)
+- ✅ Sistema de roles y permisos granulares por módulo
+- ✅ Módulo Aspirantes — listado, detalle, workflow, búsqueda avanzada (hexagonal)
+- ✅ Módulo Drivers — listado, detalle, documentos, beneficiarios (hexagonal)
+- ✅ Layout admin — sidebar, topbar, guards de módulo
+- ✅ Sesión persistida en IndexedDB con renovación automática
+- ✅ Búsqueda inteligente con 6 patrones (exacta, normalizada, prefijo, sufijo, contiene, fuzzy ≥85%)
 - ✅ Sistema de alertas de documentos vencidos
-- ✅ Validación inline con mensajes visuales
-- ✅ Loading overlays en todas las acciones
+- ✅ Exportación (CSV/Excel) en listados
 - ✅ Responsive design mobile-first
-- ✅ Docker para desarrollo
-- ✅ Tema HEB V3 con OKLCH
+- ✅ Tema HEB V3 con colores OKLCH
 
-### 🔄 En Base (para expansión)
-- 🔄 Módulo Contratos
-- 🔄 Módulo Pagos
+### 🔄 Pendiente de refactorizar a hexagonal
+- ⚠️ Módulo Capacitaciones (`app/adm/capacitacion/`)
+- ⚠️ Módulo Comunicación (`app/adm/comunicacion/`)
+- ⚠️ Módulo Complaints (`app/adm/complaints/`)
+- ⚠️ Módulo Contratos (`app/adm/contratos/`) — placeholder
+- ⚠️ Módulo Pagos (`app/adm/pagos/`) — placeholder
 
-### 📋 Próximos Pasos Sugeridos
-
-#### Corto Plazo
-1. Conectar a API/Base de datos real
-2. Implementar módulo Contratos (formularios y workflows)
-3. Implementar módulo Pagos (cálculos y reportes)
-4. Agregar notificaciones push
-5. Implementar sistema de reportes
-
-#### Mediano Plazo
-1. Migrar autenticación a SSO real (App Directory)
-2. Implementar backend con Next.js API Routes
-3. Agregar sincronización en tiempo real
-4. Sistema de auditoría y logs
-5. Exportación avanzada (PDF, Excel mejorado)
-
-#### Largo Plazo
-1. Dashboard con métricas y KPIs
-2. Sistema de notificaciones por email
-3. App móvil nativa (React Native)
-4. Integración con sistemas externos
-5. Machine Learning para predicciones
+Ver tabla detallada en la sección **Rutas pendientes de refactorizar**.
 
 ## 📄 Documentación Adicional
 
-- [AUTH_FLOW.md](docs/AUTH_FLOW.md) - Flujo de autenticación detallado
-- [RN_SPIDI.md](docs/RN_SPIDI.md) - Notas de release y changelog
+- [docs/RN_SPIDI.md](docs/RN_SPIDI.md) — Notas de release y changelog
+- [.github/copilot-instructions.md](.github/copilot-instructions.md) — Instrucciones de arquitectura para GitHub Copilot
 
 ## 🤝 Para Desarrolladores
 
 ### Convenciones de Código
 - **TypeScript strict mode** habilitado
-- **Componentes funcionales** con hooks
-- **Naming**: PascalCase para componentes, camelCase para funciones/variables
-- **Imports organizados**: React → Next → Third-party → Local
-- **Comments**: JSDoc para funciones complejas
+- Archivos en `kebab-case`, componentes en `PascalCase`, hooks con prefijo `use`
+- **Imports organizados**: React → Next → Third-party → módulos internos → local
+- Nunca importar desde `infrastructure/` dentro de `application/` o `domain/`
+- Toda lógica de negocio en `modules/`, los `page.tsx` solo montan views
 
-### Estructura de Archivos
-- Un componente por archivo
-- Co-locate: componentes relacionados en misma carpeta
-- `page.tsx` para rutas, `layout.tsx` para layouts
-- Componentes UI en `components/ui/`
-- Lógica de negocio en `lib/`
+### Agregar shadcn Components
+```bash
+npx shadcn@latest add <component>
+# Luego crear wrapper en modules/<name>/application/presentation/ui/
+```
 
 ### Git Workflow
 ```bash
 git checkout -b feature/nombre-feature
-git add .
 git commit -m "feat: descripción del cambio"
 git push -u origin feature/nombre-feature
 ```
 
-### Testing Local
-1. Verificar que `npm run build` funcione sin errores
-2. Probar en diferentes navegadores
-3. Validar responsive en DevTools (móvil, tablet, desktop)
-4. Verificar console para warnings/errors
+### Validación Local
+```bash
+npm run build    # Verificar que compila sin errores TS
+npm run lint     # ESLint
+```
 
 ## 📞 Soporte
 
@@ -481,5 +431,4 @@ Para preguntas o reporte de bugs, contacta al equipo de desarrollo.
 
 ---
 
-**SPIDI v1.2** - Sistema de Gestión Integral de Drivers  
-Desarrollado con ❤️ usando Next.js 15 y shadcn/ui
+**SPIDI** — Sistema de Gestión Integral de Drivers | HEB México

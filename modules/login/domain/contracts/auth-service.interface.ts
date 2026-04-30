@@ -7,5 +7,6 @@ export interface ITokenResultDTO {
 
 export interface IAuthService {
   initiateRedirect(): Promise<void>;
-  handleRedirectResult(): Promise<ITokenResultDTO | null>;
+  /** Exchanges an OAuth authorization code for a Microsoft access token (PKCE flow). */
+  getCallbackToken(code: string, state: string): Promise<ITokenResultDTO>;
 }

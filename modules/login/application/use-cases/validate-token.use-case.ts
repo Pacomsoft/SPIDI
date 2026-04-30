@@ -1,6 +1,5 @@
 import { type IUseCase } from '@/modules/shared/domain/contracts/use-case.interface';
 import { type ITokenRepository } from '@/modules/shared/domain/contracts/token-repository.interface';
-import { type IAuthService } from '../../domain/contracts/auth-service.interface';
 import { type ISessionRepository } from '../../domain/contracts/session-repository.interface';
 import { type ILoginAttemptsRepository } from '../../domain/contracts/login-attempts-repository.interface';
 import { type ISpidiAuthService } from '../../domain/contracts/spidi-auth-service.interface';
@@ -14,11 +13,9 @@ import { FetchError } from '@/modules/shared/domain/entities/fetch-error.class';
 
 const LOCKOUT_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MS = 2 * 60 * 1000;
-const DISABLED_ACCOUNT_CODE = 'AADSTS50057';
 
 export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IValidateTokenResultDTO> {
   constructor(
-    private readonly authService: IAuthService,
     private readonly sessionRepository: ISessionRepository,
     private readonly attemptsRepository: ILoginAttemptsRepository,
     private readonly spidiAuthService: ISpidiAuthService,
@@ -26,20 +23,9 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
   ) {}
 
   async execute(input: IValidateTokenInputDTO): Promise<IValidateTokenResultDTO> {
-    let tokenResult;
-    try {
-      tokenResult = await this.authService.handleRedirectResult();
-    } catch (error) {
-      await this.recordAndCheckLockout(error);
-    }
-
-    if (!tokenResult) {
-      throw new LoginFailedError('No se recibio respuesta de autenticacion');
-    }
-
     let spidiResult;
     try {
-      spidiResult = await this.spidiAuthService.authenticateWithEntraToken(tokenResult.accessToken);
+      spidiResult = await this.spidiAuthService.authenticateWithEntraToken(input.msAccessToken);
     } catch (error) {
       await this.recordAndCheckLockout(error);
     }
@@ -57,8 +43,8 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
     const roleDto = spidiResult.roles[0];
     const role = UserRole.create(roleDto);
     const session = Session.create(
-      tokenResult.userId,
-      tokenResult.userName,
+      input.userId ?? '',
+      input.userName ?? '',
       role.getDescription(),
       role.value,
       roleDto.menus,
@@ -87,7 +73,7 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
   private async recordAndCheckLockout(error: unknown): Promise<never> {
     const message = error instanceof Error ? error.message : '';
 
-    if (message.includes(DISABLED_ACCOUNT_CODE)) {
+    if (message.includes('AADSTS50057')) {
       throw new AccountDisabledError();
     }
 
@@ -98,10 +84,10 @@ export class ValidateTokenUseCase implements IUseCase<IValidateTokenInputDTO, IV
       throw new TooManyAttemptsError();
     }
 
-    if(error instanceof FetchError) {
+    if (error instanceof FetchError) {
       throw error;
     }
 
-    throw new LoginFailedError('Credenciales no validas, por favor vuelve a intentar.');
+    throw new LoginFailedError('No se pudo autenticar con el servidor SPIDI.');
   }
 }

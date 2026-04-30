@@ -1,4 +1,8 @@
 export interface IValidateTokenInputDTO {
+  msAccessToken: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
   redirectAfterLogin?: string;
 }
 

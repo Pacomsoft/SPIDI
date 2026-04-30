@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { authProvider, initSessionRepository } from '@/lib/auth';
 import { type IEnsureTokenValidUseCase } from '../../domain/contracts/ensure-token-valid-use-case.interface';
 
@@ -15,24 +14,17 @@ export function useAuthGuard(
 ): IUseAuthGuardResult {
   const router = useRouter();
   const pathname = usePathname();
-  const { status } = useSession();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (status === 'loading') return;
-
     const checkAuth = async () => {
-      if (status === 'unauthenticated') {
+      await initSessionRepository();
+
+      if (!authProvider.isAuthenticated()) {
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('redirect_after_login', pathname);
         }
         router.push('/login');
-        return;
-      }
-
-      await initSessionRepository();
-      if (!authProvider.isAuthenticated()) {
-        router.push('/validate-token');
         return;
       }
 
@@ -51,7 +43,7 @@ export function useAuthGuard(
     const interval = setInterval(checkAuth, 5 * 60 * 1000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [pathname]);
 
   return { ready };
 }
