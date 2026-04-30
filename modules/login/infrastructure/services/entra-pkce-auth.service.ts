@@ -46,9 +46,12 @@ export class EntraPkceAuthService implements IAuthService {
   constructor() {
     this.clientId = process.env.NEXT_PUBLIC_MICROSOFT_ENTRA_CLIENT_ID ?? '';
     this.tenantId = process.env.NEXT_PUBLIC_MICROSOFT_ENTRA_TENANT_ID ?? '';
+    const fallbackOrigin =
+      typeof window !== 'undefined'
+        ? window.location.origin.replace(/^http:\/\//, 'https://')
+        : '';
     this.redirectUri =
-      process.env.NEXT_PUBLIC_MICROSOFT_ENTRA_REDIRECT_URI ??
-      (typeof window !== 'undefined' ? `${window.location.origin}/validate-token` : '');
+      process.env.NEXT_PUBLIC_MICROSOFT_ENTRA_REDIRECT_URI ?? `${fallbackOrigin}/validate-token`;
   }
 
   async initiateRedirect(): Promise<void> {
