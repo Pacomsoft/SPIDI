@@ -19,7 +19,7 @@ function buildCspHeader(nonce: string): string {
     "form-action 'self' https://login.microsoftonline.com",
     `connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com ${apiUrl} ${serverUrl}`,
     `report-uri ${apiUrl}${cspReportEndpoint}`,
-    `report-to csp-report=${apiUrl}${cspReportEndpoint}`,
+    `report-to csp-report`,
     "default-src 'self'",
     "base-uri 'self'",
     "object-src 'none'",

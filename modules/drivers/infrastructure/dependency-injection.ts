@@ -26,7 +26,7 @@ import { type IGetDriverOrdersUseCase } from '../domain/contracts/get-driver-ord
 import { type IGetDriverPaymentsUseCase } from '../domain/contracts/get-driver-payments-use-case.interface';
 
 export function createDriversHttpClient(toastContext?: IToastContext): IHttpClient {
-  return new FetchHttpClient('', {
+  return new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
     configuracionRepository: createConfiguracionRepository(),
     idempotencyRepository: createIdempotencyRepository(),
     tokenRepository: createTokenRepository(),

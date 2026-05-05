@@ -2,14 +2,29 @@ import { type IAdmSessionPort } from '../domain/contracts/adm-session-port.inter
 import { type ICheckModuleAccessUseCase } from '../domain/contracts/check-module-access-use-case.interface';
 import { type IGetHomePageUseCase } from '../domain/contracts/get-home-page-use-case.interface';
 import { type IGetSessionInfoUseCase } from '../domain/contracts/get-session-info-use-case.interface';
+import { type IHttpClient } from '@/modules/shared/domain/contracts/http-client.interface';
 import { AdmSessionAdapter } from './session/adm-session.adapter';
 import { CheckModuleAccessUseCase } from '../application/use-cases/check-module-access.use-case';
 import { GetHomePageUseCase } from '../application/use-cases/get-home-page.use-case';
 import { GetSessionInfoUseCase } from '../application/use-cases/get-session-info.use-case';
 import { createSessionRepository } from '@/modules/login/infrastructure/dependency-injection';
+import { FetchHttpClient } from '@/modules/shared/infrastructure/http-client/fetch-http-client';
+import {
+  createConfiguracionRepository,
+  createIdempotencyRepository,
+  createTokenRepository,
+} from '@/modules/shared/infrastructure/dependency-injection';
+
+export function createAdmHttpClient(): IHttpClient {
+  return new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
+    configuracionRepository: createConfiguracionRepository(),
+    idempotencyRepository: createIdempotencyRepository(),
+    tokenRepository: createTokenRepository(),
+  });
+}
 
 export function createAdmSessionAdapter(): IAdmSessionPort {
-  return new AdmSessionAdapter(createSessionRepository());
+  return new AdmSessionAdapter(createSessionRepository(), createAdmHttpClient());
 }
 
 export function createCheckModuleAccessUseCase(): ICheckModuleAccessUseCase {

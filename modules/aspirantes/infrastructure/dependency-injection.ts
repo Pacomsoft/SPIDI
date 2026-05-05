@@ -22,7 +22,7 @@ import type { ICreateProposalUseCase } from '../domain/contracts/create-proposal
 import type { IGetApplicantCatalogsUseCase } from '../domain/contracts/get-applicant-catalogs-use-case.interface';
 
 export function createApplicantsModule(toastContext?: IToastContext) {
-  const httpClient = new FetchHttpClient('', {
+  const httpClient = new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
     configuracionRepository: createConfiguracionRepository(),
     idempotencyRepository: createIdempotencyRepository(),
     tokenRepository: createTokenRepository(),

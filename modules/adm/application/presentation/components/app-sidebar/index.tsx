@@ -60,6 +60,7 @@ export function AppSidebar({ sessionPort }: IAppSidebarProps) {
   const handleLogout = async () => {
     const confirmed = await confirm({ text: '¿Estás seguro que deseas cerrar sesión?' });
     if (!confirmed) return;
+    await sessionPort.logout();
     await sessionPort.clearSession();
     router.push('/login');
   };
