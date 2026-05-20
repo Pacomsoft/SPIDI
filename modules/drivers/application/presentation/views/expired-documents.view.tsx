@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '../ui/sheet';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { DriverStatusBadge } from '../components/driver-status-badge';
 
 interface IExpiredDocumentsViewProps {
@@ -68,6 +69,7 @@ export function ExpiredDocumentsView({
   const [driverDetail, setDriverDetail] = useState<IDriverDetailDTO | null>(null);
   const [driverDocuments, setDriverDocuments] = useState<IDocumentDTO[]>([]);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // ── Fetch inicial y re-fetch al cambiar página / sort ────────────────────
   const loadItems = useCallback(async () => {
@@ -121,6 +123,7 @@ export function ExpiredDocumentsView({
   };
 
   const handleExport = async (format: string) => {
+    setIsExporting(true);
     const result = await exportExpiredDocumentsUseCase.execute({ format });
     if (result.success && result.data) {
       const url = URL.createObjectURL(result.data);
@@ -130,6 +133,7 @@ export function ExpiredDocumentsView({
       a.click();
       URL.revokeObjectURL(url);
     }
+    setIsExporting(false);
   };
 
   const expiredCount  = items.filter(i => (i.expiredDocuments?.length ?? 0) > 0).length;
@@ -155,12 +159,19 @@ export function ExpiredDocumentsView({
               </div>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { void handleExport('xlsx'); }}>
-                <Download className="h-4 w-4 mr-2" />Exportar Excel
-              </Button>
-              <Button variant="outline" onClick={() => { void handleExport('csv'); }}>
-                <Download className="h-4 w-4 mr-2" />Exportar CSV
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" disabled={isExporting}>
+                    {isExporting
+                      ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando...</>
+                      : <><Download className="h-4 w-4 mr-2" />Exportar</>}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>CSV</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>

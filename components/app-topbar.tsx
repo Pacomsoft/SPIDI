@@ -80,12 +80,10 @@ export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background px-4 transition-[width,height] ease-linear">
-      {/* Botón del menú lateral */}
-      <SidebarTrigger className="-ml-1" />
-      
-      {/* Separador */}
-      <Separator orientation="vertical" className="h-6" />
-      
+      {/* Trigger solo visible en mobile (en desktop vive dentro del sidebar) */}
+      <SidebarTrigger className="-ml-1 md:hidden" />
+      <Separator orientation="vertical" className="h-6 md:hidden" />
+
       {/* Breadcrumb */}
       <Breadcrumb className="flex-1">
         <BreadcrumbList>

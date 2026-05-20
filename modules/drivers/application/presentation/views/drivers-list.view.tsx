@@ -1,21 +1,22 @@
 'use client';
 
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
-import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
 import { type IGetDriversUseCase } from '../../../domain/contracts/get-drivers-use-case.interface';
 import { type IExportDriversUseCase } from '../../../domain/contracts/export-drivers-use-case.interface';
 import { type IGetDriverCatalogsUseCase } from '../../../domain/contracts/get-driver-catalogs-use-case.interface';
 import { useDriversList } from '../../hooks/use-drivers-list.hook';
-import { DriverStatusBadge } from '../components/driver-status-badge';
+import { DriverStatusBadge, DRIVER_STATUS_STYLES } from '../components/driver-status-badge';
 import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const checkModuleAccessUseCase = createCheckModuleAccessUseCase();
 
@@ -35,7 +36,7 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
     states, stores,
     setPage, setPageSize, setSortBy, setSortDirection,
     setSearch, setDriverStatusFilter, setStateFilter, setStoreFilter,
-    handleExport, clearFilters,
+    handleExport, clearFilters, isExporting,
   } = useDriversList(getDriversUseCase, exportDriversUseCase, getCatalogsUseCase);
 
   const totalPages = Math.ceil(total / pageSize);
@@ -76,9 +77,24 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
         <Card>
           <CardHeader className="bg-muted/30">
             <div className="flex flex-col gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Listado de Drivers</h1>
-                <p className="text-sm text-muted-foreground mt-1">{total} drivers en total</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Listado de Drivers</h1>
+                  <p className="text-sm text-muted-foreground mt-1">{total} drivers en total</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" disabled={isExporting}>
+                      {isExporting
+                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
+                        : <><Download className="mr-2 h-4 w-4" />Exportar</>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -91,32 +107,28 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
                       className="pl-8"
                     />
                   </div>
-                  <Select onValueChange={value => { void handleExport(value); }}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <Download className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Exportar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="csv">CSV</SelectItem>
-                      <SelectItem value="xlsx">Excel</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="lg:flex-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <div className="lg:flex-1">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Estado de driver</label>
-                      <Tabs
-                        value={driverStatusFilter[0] || 'todos'}
-                        onValueChange={(v) => setDriverStatusFilter(v === 'todos' ? [] : [v])}
-                      >
-                      <TabsList className="h-9 w-max lg:w-auto inline-flex">
-                        <TabsTrigger value="todos" className="text-xs whitespace-nowrap">Todos</TabsTrigger>
-                        <TabsTrigger value="Enabled" className="text-xs whitespace-nowrap">Habilitado</TabsTrigger>
-                        <TabsTrigger value="Disabled" className="text-xs whitespace-nowrap">Deshabilitado</TabsTrigger>
-                        <TabsTrigger value="Suspended" className="text-xs whitespace-nowrap">Suspendido</TabsTrigger>
-                      </TabsList>
-                      </Tabs>
+                      <div className="flex flex-wrap gap-2">
+                        {STATUS_OPTIONS.map(({ value, label }) => {
+                          const isActive = driverStatusFilter.includes(value);
+                          return (
+                            <Badge
+                              key={value}
+                              variant="outline"
+                              className="cursor-pointer hover:opacity-80 transition-opacity"
+                              style={isActive ? DRIVER_STATUS_STYLES[value as keyof typeof DRIVER_STATUS_STYLES] : undefined}
+                              onClick={() => toggleStatus(value)}
+                            >
+                              {label}
+                              {isActive && <X className="ml-1 h-3 w-3" />}
+                            </Badge>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:w-auto">

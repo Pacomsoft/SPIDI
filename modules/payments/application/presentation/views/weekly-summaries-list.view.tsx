@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
-import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { type IGetWeeklySummariesUseCase } from '../../../domain/contracts/get-weekly-summaries-use-case.interface';
 import { type IExportWeeklySummariesUseCase } from '../../../domain/contracts/export-weekly-summaries-use-case.interface';
 import { useWeeklySummariesList } from '../../hooks/use-weekly-summaries-list.hook';
@@ -64,13 +64,15 @@ export function WeeklySummariesListView({ getWeeklySummariesUseCase, exportWeekl
                 <p className="text-sm text-muted-foreground mt-1">{total} resúmenes en total</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+                <Button variant="outline" onClick={clearFilters}>
+                  <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting}>
                       {isExporting
-                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
-                        : 'Exportar'}
+                        ? <><Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /><span className="hidden sm:inline">Exportando…</span></>
+                        : <><Download className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Exportar</span></>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -82,8 +84,8 @@ export function WeeklySummariesListView({ getWeeklySummariesUseCase, exportWeekl
             </div>
 
             {/* Filtros */}
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-1.5 sm:col-span-1">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="space-y-1.5 flex-1">
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide leading-none">
                   Driver / RFC
                 </label>
@@ -119,7 +121,7 @@ export function WeeklySummariesListView({ getWeeklySummariesUseCase, exportWeekl
           ) : summaries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">No se encontraron resúmenes con los filtros seleccionados</p>
-              <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+              <Button variant="outline" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
             </div>
           ) : (
             <>

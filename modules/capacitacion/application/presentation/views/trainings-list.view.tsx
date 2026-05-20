@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
-import { Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, BookOpen, Loader2 } from 'lucide-react';
+import { Search, Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, BookOpen, Loader2 } from 'lucide-react';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
 import type { IGetTrainingsUseCase } from '../../../domain/contracts/get-trainings-use-case.interface';
@@ -65,10 +65,28 @@ export function TrainingsListView({ getTrainingsUseCase, exportTrainingsUseCase 
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Capacitaciones</h1>
                   <p className="text-sm text-muted-foreground mt-1">{total} capacitaciones en total</p>
                 </div>
-                <Button onClick={() => navigateTo('/adm/capacitacion/create')}>
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  Crear capacitación
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={clearFilters}>
+                    <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" disabled={isExporting}>
+                        {isExporting
+                          ? <><Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /><span className="hidden sm:inline">Exportando…</span></>
+                          : <><Download className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Exportar</span></>}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>CSV</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button onClick={() => navigateTo('/adm/capacitacion/create')}>
+                    <BookOpen className="sm:mr-2 h-4 w-4" />
+                    <span className="hidden sm:inline">Crear capacitación</span>
+                  </Button>
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -80,20 +98,6 @@ export function TrainingsListView({ getTrainingsUseCase, exportTrainingsUseCase 
                     className="pl-8"
                   />
                 </div>
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" disabled={isExporting}>
-                      {isExporting
-                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
-                        : 'Exportar'}
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>CSV</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </div>
           </CardHeader>
@@ -105,7 +109,7 @@ export function TrainingsListView({ getTrainingsUseCase, exportTrainingsUseCase 
             ) : trainings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <p className="text-muted-foreground mb-4">No se encontraron capacitaciones con los filtros seleccionados</p>
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+                <Button variant="outline" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
               </div>
             ) : (
               <>

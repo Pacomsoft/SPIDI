@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
 import { useToast } from '@/modules/shared/application/hooks/use-toast.hook';
-import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, X, Loader2 } from 'lucide-react';
+import { Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, X, Loader2 } from 'lucide-react';
 import { type IGetAdjustmentsUseCase } from '../../../domain/contracts/get-adjustments-use-case.interface';
 import { type IExportAdjustmentsUseCase } from '../../../domain/contracts/export-adjustments-use-case.interface';
 import { type ICreateAdjustmentUseCase } from '../../../domain/contracts/create-adjustment-use-case.interface';
@@ -347,13 +347,16 @@ export function AdjustmentsListView({
                 <p className="text-sm text-muted-foreground mt-1">{total} ajustes en total</p>
               </div>
               <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={clearFilters}>
+                  <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                </Button>
                 {/* Export — DropdownMenu para evitar bug de re-disparo */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting}>
                       {isExporting
-                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
-                        : 'Exportar'}
+                        ? <><Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /><span className="hidden sm:inline">Exportando…</span></>
+                        : <><Download className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Exportar</span></>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -363,26 +366,21 @@ export function AdjustmentsListView({
                 </DropdownMenu>
 
                 <Button onClick={() => setShowModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />Crear ajuste
+                  <Plus className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Crear ajuste</span>
                 </Button>
               </div>
             </div>
 
             {/* Filtros */}
-            <div className="space-y-4">
-              {/* Búsqueda + limpiar */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  placeholder="Buscar por driver…"
-                  value={driverName}
-                  onChange={e => setDriverName(e.target.value)}
-                  className="flex-1"
-                />
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
-              </div>
-
+            <div className="flex flex-col gap-3">
+              <Input
+                placeholder="Buscar por driver…"
+                value={driverName}
+                onChange={e => setDriverName(e.target.value)}
+                className="flex-1"
+              />
               {/* Filtros secundarios */}
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
 
                 {/* Fecha aplicación desde */}
                 <div className="space-y-2">
@@ -453,7 +451,7 @@ export function AdjustmentsListView({
           ) : adjustments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">No se encontraron ajustes con los filtros seleccionados</p>
-              <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+              <Button variant="outline" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
             </div>
           ) : (
             <>

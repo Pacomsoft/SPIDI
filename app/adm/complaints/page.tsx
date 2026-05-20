@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -26,7 +27,6 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Filter,
   FilterX,
   Loader2
 } from "lucide-react"
@@ -158,26 +158,43 @@ const matchTextIntelligent = (text: string, searchTerm: string): boolean => {
   return false
 }
 
-const getStatusBadgeClass = (status: ComplaintStatus) => {
-  switch (status) {
-    case "Nueva":
-      return "badge-pendiente"
-    case "En proceso":
-      return "badge-revision"
-    case "Resuelta":
-      return "badge-aprobado"
-  }
+// Paleta específica columna "Tipo" — Listado de quejas
+// Estilos inline para no colisionar con clases badge-* globales
+const TYPE_BADGE_STYLES: Record<ComplaintType, React.CSSProperties> = {
+  Comentario: {
+    borderColor: 'oklch(0.869 0.022 252.894)',   // slate-300 #CAD5E2
+    backgroundColor: 'oklch(0.968 0.007 247.896)', // slate-100 #F1F5F9
+    color: 'oklch(0.2405 0.012 84.56)',            // #221f19 — texto oscuro unificado
+  },
+  Queja: {
+    borderColor: 'oklch(0.6813 0.1223 13.71)',    // #D97782
+    backgroundColor: 'oklch(0.9358 0.0222 7.19)', // #F8E4E7
+    color: 'oklch(0.2405 0.012 84.56)',
+  },
+  Aclaración: {
+    borderColor: 'oklch(71.98% 0.0907 227.557)',   // chart-3 #62B0D1
+    backgroundColor: 'oklch(94.8% 0.0188 222.164)', // chart-5 #E1F1F7
+    color: 'oklch(0.2405 0.012 84.56)',
+  },
 }
 
-const getTypeBadgeClass = (type: ComplaintType) => {
-  switch (type) {
-    case "Queja":
-      return "badge-rechazado"
-    case "Aclaración":
-      return "badge-revision"
-    case "Comentario":
-      return "badge-pendiente"
-  }
+// Paleta específica columna "Estado" — Listado de quejas
+const STATUS_BADGE_STYLES: Record<ComplaintStatus, React.CSSProperties> = {
+  'En proceso': {
+    borderColor: 'oklch(0.879 0.169 91.605)',      // amber-300 #FFD230
+    backgroundColor: 'oklch(0.962 0.059 95.617)',  // amber-100 #FEF3C6
+    color: 'oklch(0.2405 0.012 84.56)',
+  },
+  Nueva: {
+    borderColor: 'oklch(82.7% 0.119 306.383)',     // purple-300 #DAB2FF
+    backgroundColor: 'oklch(94.6% 0.033 307.174)', // purple-100 #F3E8FF
+    color: 'oklch(0.2405 0.012 84.56)',
+  },
+  Resuelta: {
+    borderColor: 'oklch(79.2% 0.209 151.711)',     // green-400 #05DF72
+    backgroundColor: 'oklch(96.2% 0.044 156.743)', // green-100 #DCFCE7
+    color: 'oklch(0.2405 0.012 84.56)',
+  },
 }
 
 const getStatusBadgeVariant = (status: ComplaintStatus) => {
@@ -209,6 +226,7 @@ export default function ComplaintsPage() {
   const [complaints, setComplaints] = useState<ComplaintItem[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
   const [showError, setShowError] = useState(false)
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: 'receivedAt',
@@ -392,6 +410,7 @@ export default function ComplaintsPage() {
   }
 
   const handleExportCSV = (allData: boolean = false) => {
+    setIsExporting(true)
     const dataToExport = allData ? sortedComplaints : paginatedComplaints
     const headers = ["ID", "Driver", "Tipo", "Fecha de recepción", "Estado"]
     const csvContent = [
@@ -412,9 +431,11 @@ export default function ComplaintsPage() {
     link.href = URL.createObjectURL(blob)
     link.download = `quejas_aclaraciones_${allData ? 'todos' : 'pagina'}_${new Date().toISOString().split('T')[0]}.csv`
     link.click()
+    setIsExporting(false)
   }
 
   const handleExportExcel = (allData: boolean = false) => {
+    setIsExporting(true)
     const dataToExport = allData ? sortedComplaints : paginatedComplaints
     const headers = ["ID", "Driver", "Tipo", "Fecha de recepción", "Estado"]
     const csvContent = [
@@ -435,6 +456,7 @@ export default function ComplaintsPage() {
     link.href = URL.createObjectURL(blob)
     link.download = `quejas_aclaraciones_${allData ? 'todos' : 'pagina'}_${new Date().toISOString().split('T')[0]}.xls`
     link.click()
+    setIsExporting(false)
   }
 
   const formatDate = (isoString: string) => {
@@ -557,7 +579,7 @@ export default function ComplaintsPage() {
         <Card>
           <CardHeader className="bg-muted/30">
             <div className="flex flex-col gap-4">
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Quejas y Aclaraciones</h1>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -565,48 +587,30 @@ export default function ComplaintsPage() {
                     {activeFiltersCount > 0 && ` • ${activeFiltersCount} filtro(s) activo(s)`}
                   </p>
                 </div>
-                <Select 
-                  onValueChange={(value) => {
-                    if (value === "csv-page") handleExportCSV(false);
-                    else if (value === "csv-all") handleExportCSV(true);
-                    else if (value === "excel-page") handleExportExcel(false);
-                    else if (value === "excel-all") handleExportExcel(true);
-                  }}
-                  disabled={loading || filteredComplaints.length === 0}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <Download className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Exportar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="csv-page">CSV (Página actual)</SelectItem>
-                    <SelectItem value="csv-all">CSV (Todos filtrados)</SelectItem>
-                    <SelectItem value="excel-page">Excel (Página actual)</SelectItem>
-                    <SelectItem value="excel-all">Excel (Todos filtrados)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={handleClearFilters}>
+                    <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" disabled={isExporting || loading || filteredComplaints.length === 0}>
+                      {isExporting
+                        ? <><Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /><span className="hidden sm:inline">Exportando…</span></>
+                        : <><Download className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Exportar</span></>}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleExportCSV(false)}>CSV (Página actual)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportCSV(true)}>CSV (Todos filtrados)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportExcel(false)}>Excel (Página actual)</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportExcel(true)}>Excel (Todos filtrados)</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
               {/* Barra de Filtros */}
               <div className="border-t pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Filter className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">Filtros</span>
-                  </div>
-                  {activeFiltersCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="h-8 text-xs"
-                    >
-                      <FilterX className="mr-2 h-3 w-3" />
-                      Limpiar filtros
-                    </Button>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {/* Filtro por ID */}
                   <div className="space-y-2">
@@ -653,8 +657,9 @@ export default function ComplaintsPage() {
                       {(["Queja", "Aclaración", "Comentario"] as ComplaintType[]).map(type => (
                         <Badge
                           key={type}
-                          variant={filters.types.includes(type) ? getTypeBadgeVariant(type) : "outline"}
+                          variant="outline"
                           className="cursor-pointer hover:opacity-80 transition-opacity"
+                          style={filters.types.includes(type) ? TYPE_BADGE_STYLES[type] : undefined}
                           onClick={() => handleToggleType(type)}
                         >
                           {type}
@@ -671,8 +676,9 @@ export default function ComplaintsPage() {
                       {(["Nueva", "En proceso", "Resuelta"] as ComplaintStatus[]).map(status => (
                         <Badge
                           key={status}
-                          variant={filters.statuses.includes(status) ? getStatusBadgeVariant(status) : "outline"}
+                          variant="outline"
                           className="cursor-pointer hover:opacity-80 transition-opacity"
+                          style={filters.statuses.includes(status) ? STATUS_BADGE_STYLES[status] : undefined}
                           onClick={() => handleToggleStatus(status)}
                         >
                           {status}
@@ -718,33 +724,6 @@ export default function ComplaintsPage() {
                           onClick={() => handleRemoveFilter('updatedAtRange')}
                           className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
                           aria-label="Remover filtro de fecha"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    {filters.types.length > 0 && (
-                      <Badge variant="secondary" className="gap-1">
-                        Tipos: {filters.types.length}
-                        <button
-                          onClick={() => handleRemoveFilter('types')}
-                          className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                          aria-label="Remover filtro de tipos"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    )}
-                    {filters.statuses.length > 0 && 
-                     (filters.statuses.length !== 2 || 
-                      !filters.statuses.includes("Nueva") || 
-                      !filters.statuses.includes("En proceso")) && (
-                      <Badge variant="secondary" className="gap-1">
-                        Estados: {filters.statuses.length}
-                        <button
-                          onClick={() => handleRemoveFilter('statuses')}
-                          className="ml-1 hover:bg-secondary-foreground/20 rounded-full p-0.5"
-                          aria-label="Remover filtro de estados"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -872,14 +851,14 @@ export default function ComplaintsPage() {
                         <TableCell className="font-medium">{complaint.id}</TableCell>
                         <TableCell>{complaint.driverName}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getTypeBadgeClass(complaint.type)}>
+                          <Badge variant="outline" style={TYPE_BADGE_STYLES[complaint.type]}>
                             {complaint.type}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatDate(complaint.receivedAt)}</TableCell>
                         <TableCell>{formatDate(complaint.updatedAt)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusBadgeClass(complaint.status)}>
+                          <Badge variant="outline" style={STATUS_BADGE_STYLES[complaint.status]}>
                             {complaint.status}
                           </Badge>
                         </TableCell>

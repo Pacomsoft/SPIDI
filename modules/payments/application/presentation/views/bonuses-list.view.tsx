@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
 import { useToast } from '@/modules/shared/application/hooks/use-toast.hook';
-import { Download, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, X } from 'lucide-react';
+import { Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Plus, X } from 'lucide-react';
 import { type IGetBonusesUseCase } from '../../../domain/contracts/get-bonuses-use-case.interface';
 import { type IExportBonusesUseCase } from '../../../domain/contracts/export-bonuses-use-case.interface';
 import { type ICreateBonusUseCase } from '../../../domain/contracts/create-bonus-use-case.interface';
@@ -438,12 +438,14 @@ export function BonusesListView({
                 <p className="text-sm text-muted-foreground mt-1">{total} bonos en total</p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClearAll}>Limpiar filtros</Button>
+                <Button variant="outline" onClick={handleClearAll}>
+                  <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {isExporting ? 'Exportando…' : 'Exportar'}
+                      <Download className="sm:mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">{isExporting ? 'Exportando…' : 'Exportar'}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -452,7 +454,7 @@ export function BonusesListView({
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Button onClick={() => setShowModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />Crear bono
+                  <Plus className="h-4 w-4 sm:mr-2" /><span className="hidden sm:inline">Crear bono</span>
                 </Button>
               </div>
             </div>
@@ -481,8 +483,8 @@ export function BonusesListView({
               />
             </div>
 
-            {/* Filtros de Tienda y Tipo */}
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* Filtros de Tienda, Tipo y botón limpiar */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:items-end">
               {/* Tienda */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Tienda</label>
@@ -534,7 +536,7 @@ export function BonusesListView({
           ) : bonuses.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">No se encontraron bonos con los filtros seleccionados</p>
-              <Button variant="outline" onClick={handleClearAll}>Limpiar filtros</Button>
+              <Button variant="outline" onClick={handleClearAll}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
             </div>
           ) : (
             <>

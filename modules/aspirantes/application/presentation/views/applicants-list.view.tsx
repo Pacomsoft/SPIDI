@@ -5,7 +5,7 @@ import { useNavigationLoading } from '@/modules/shared/application/hooks/use-nav
 import type { DateRange } from 'react-day-picker';
 import {
   Search, Download, ChevronLeft, ChevronRight,
-  ArrowUpDown, ArrowUp, ArrowDown, Loader2, ExternalLink, Car, FileText,
+  ArrowUpDown, ArrowUp, ArrowDown, Loader2, ExternalLink, Car, FileText, X,
 } from 'lucide-react';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
@@ -15,7 +15,7 @@ import type { IGetApplicantCatalogsUseCase } from '../../../domain/contracts/get
 import type { IGetSessionInfoUseCase } from '@/modules/adm/domain/contracts/get-session-info-use-case.interface';
 import type { ICheckModuleAccessUseCase } from '@/modules/adm/domain/contracts/check-module-access-use-case.interface';
 import { useApplicantsList } from '../../../application/hooks/use-applicants-list.hook';
-import { ApplicantStatusBadge } from '../components/applicant-status-badge';
+import { ApplicantStatusBadge, APPLICANT_STATUS_STYLES } from '../components/applicant-status-badge';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Card, CardContent, CardHeader } from '../ui/card';
@@ -23,7 +23,7 @@ import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../ui/sheet';
-import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { DatePickerWithRange } from '../ui/date-range-picker';
 import type { IApplicantListItemDTO } from '../../../domain/contracts/applicant-list.dto';
 
@@ -82,12 +82,19 @@ export function ApplicantListView({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<IApplicantListItemDTO | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
+  const [isExporting, setIsExporting] = useState(false);
 
   const {
     items, total, totalPages, isLoading, filters, searchInput,
     locations, handleSearchChange, handleFilterChange,
     handlePageChange, handlePageSizeChange, handleSortChange, handleExport,
   } = useApplicantsList(getApplicantsUseCase, exportApplicantsUseCase, getCatalogsUseCase);
+
+  const handleExportWithSpinner = async (format: string) => {
+    setIsExporting(true);
+    await handleExport(format);
+    setIsExporting(false);
+  };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
@@ -108,9 +115,24 @@ export function ApplicantListView({
         <Card>
           <CardHeader className="bg-muted/30">
             <div className="flex flex-col gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Listado de aspirantes</h1>
-                <p className="text-sm text-muted-foreground mt-1">{total} aspirantes</p>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Listado de aspirantes</h1>
+                  <p className="text-sm text-muted-foreground mt-1">{total} aspirantes</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" disabled={isExporting}>
+                      {isExporting
+                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
+                        : <><Download className="mr-2 h-4 w-4" />Exportar</>}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { void handleExportWithSpinner('csv'); }}>CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { void handleExportWithSpinner('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-3 items-stretch">
@@ -123,32 +145,34 @@ export function ApplicantListView({
                       className="pl-8"
                     />
                   </div>
-                  <Select onValueChange={(v) => handleExport(v)}>
-                    <SelectTrigger className="w-full sm:w-[180px]">
-                      <Download className="mr-2 h-4 w-4" />
-                      <SelectValue placeholder="Exportar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="csv">CSV</SelectItem>
-                      <SelectItem value="xlsx">Excel</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="flex flex-col lg:flex-row gap-4">
-                  <div className="lg:flex-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                  <div className="lg:flex-1">
                     <div className="space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">Estado de aspirante</label>
-                      <Tabs value={filters.applicationStatus || 'activos'} onValueChange={(v) => handleFilterChange('applicationStatus', v === 'activos' || v === 'todos' ? '' : v)}>
-                      <TabsList className="h-9 w-max lg:w-auto inline-flex">
-                        <TabsTrigger value="activos" className="text-xs whitespace-nowrap">Activos</TabsTrigger>
-                        <TabsTrigger value="todos" className="text-xs whitespace-nowrap">Todos</TabsTrigger>
-                        <TabsTrigger value="Pending" className="text-xs whitespace-nowrap">Pendiente</TabsTrigger>
-                        <TabsTrigger value="In Review" className="text-xs whitespace-nowrap">Revisión</TabsTrigger>
-                        <TabsTrigger value="Proposal Sent" className="text-xs whitespace-nowrap">Propuesta</TabsTrigger>
-                        <TabsTrigger value="Approved" className="text-xs whitespace-nowrap">Aprobado</TabsTrigger>
-                        <TabsTrigger value="Rejected" className="text-xs whitespace-nowrap">Rechazado</TabsTrigger>
-                      </TabsList>
-                      </Tabs>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { value: 'Pending',       label: 'Pendiente'         },
+                          { value: 'In Review',     label: 'En Revisión'       },
+                          { value: 'Proposal Sent', label: 'Propuesta enviada' },
+                          { value: 'Approved',      label: 'Aprobado'          },
+                          { value: 'Rejected',      label: 'Rechazado'         },
+                        ] as { value: IApplicantListItemDTO['applicationStatus']; label: string }[]).map(({ value, label }) => {
+                          const isActive = filters.applicationStatus === value;
+                          return (
+                            <Badge
+                              key={value}
+                              variant="outline"
+                              className="cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap"
+                              style={isActive ? APPLICANT_STATUS_STYLES[value] : undefined}
+                              onClick={() => handleFilterChange('applicationStatus', isActive ? '' : value)}
+                            >
+                              {label}
+                              {isActive && <X className="ml-1 h-3 w-3" />}
+                            </Badge>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 lg:w-auto">

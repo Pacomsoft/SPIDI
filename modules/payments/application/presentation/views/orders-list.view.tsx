@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
-import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
+import { Search, Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, X } from 'lucide-react';
 import { type IGetOrdersUseCase } from '../../../domain/contracts/get-orders-use-case.interface';
 import { type IExportOrdersUseCase } from '../../../domain/contracts/export-orders-use-case.interface';
 import { type IGetStoresUseCase } from '../../../domain/contracts/get-stores-use-case.interface';
@@ -93,40 +93,40 @@ export function OrdersListView({ getOrdersUseCase, exportOrdersUseCase, getStore
       <Card>
         <CardHeader className="bg-muted/30">
           <div className="flex flex-col gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pedidos</h1>
-              <p className="text-sm text-muted-foreground mt-1">{total} pedidos en total</p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground z-10" />
-                  <Input
-                    placeholder="Buscar por N° pedido, driver..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Pedidos</h1>
+                <p className="text-sm text-muted-foreground mt-1">{total} pedidos en total</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={clearFilters}>
+                  <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full sm:w-auto" disabled={isExporting}>
-                      <Download className="mr-2 h-4 w-4" />
-                      {isExporting ? 'Exportando…' : 'Exportar'}
+                    <Button variant="outline" disabled={isExporting}>
+                      <Download className="sm:mr-2 h-4 w-4" />
+                      <span className="hidden sm:inline">{isExporting ? 'Exportando…' : 'Exportar'}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>
-                      CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>
-                      Excel (.xlsx)
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { void handleExport('csv'); }}>CSV</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { void handleExport('xlsx'); }}>Excel (.xlsx)</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground z-10" />
+                <Input
+                  placeholder="Buscar por N° pedido, driver..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Fecha desde</label>
                   <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
@@ -201,7 +201,7 @@ export function OrdersListView({ getOrdersUseCase, exportOrdersUseCase, getStore
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">No se encontraron pedidos con los filtros seleccionados</p>
-              <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+              <Button variant="outline" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
             </div>
           ) : (
             <>

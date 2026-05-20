@@ -1,7 +1,7 @@
 'use client';
 
 import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
-import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
+import { Download, FilterX, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { type IGetDailySummariesUseCase } from '../../../domain/contracts/get-daily-summaries-use-case.interface';
 import { type IExportDailySummariesUseCase } from '../../../domain/contracts/export-daily-summaries-use-case.interface';
 import { useDailySummariesList } from '../../hooks/use-daily-summaries-list.hook';
@@ -56,25 +56,21 @@ export function DailySummariesListView({ getDailySummariesUseCase, exportDailySu
       <Card>
         <CardHeader className="bg-muted/30">
           <div className="flex flex-col gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Resúmenes Diarios</h1>
-              <p className="text-sm text-muted-foreground mt-1">{total} resúmenes en total</p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Input
-                  placeholder="Buscar por driver, RFC..."
-                  value={driverSearch}
-                  onChange={e => setDriverSearch(e.target.value)}
-                  className="flex-1"
-                />
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Resúmenes Diarios</h1>
+                <p className="text-sm text-muted-foreground mt-1">{total} resúmenes en total</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={clearFilters}>
+                  <FilterX className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpiar filtros</span>
+                </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" disabled={isExporting}>
                       {isExporting
-                        ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Exportando…</>
-                        : 'Exportar'}
+                        ? <><Loader2 className="sm:mr-2 h-4 w-4 animate-spin" /><span className="hidden sm:inline">Exportando…</span></>
+                        : <><Download className="sm:mr-2 h-4 w-4" /><span className="hidden sm:inline">Exportar</span></>}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -83,15 +79,21 @@ export function DailySummariesListView({ getDailySummariesUseCase, exportDailySu
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Fecha desde</label>
-                  <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Fecha hasta</label>
-                  <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="Buscar por driver, RFC..."
+                value={driverSearch}
+                onChange={e => setDriverSearch(e.target.value)}
+                className="flex-1"
+              />
+              <div className="space-y-2 shrink-0">
+                <label className="text-sm font-medium">Fecha desde</label>
+                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+              </div>
+              <div className="space-y-2 shrink-0">
+                <label className="text-sm font-medium">Fecha hasta</label>
+                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
               </div>
             </div>
           </div>
@@ -104,7 +106,7 @@ export function DailySummariesListView({ getDailySummariesUseCase, exportDailySu
           ) : summaries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-muted-foreground mb-4">No se encontraron resúmenes con los filtros seleccionados</p>
-              <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+              <Button variant="outline" onClick={clearFilters}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>
             </div>
           ) : (
             <>

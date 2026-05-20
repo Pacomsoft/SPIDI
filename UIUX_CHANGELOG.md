@@ -720,66 +720,66 @@ Todas las 7 columnas solicitadas: ID Bono, Tienda, Inicio vigencia, Fin vigencia
 | `IUpdateAdjustmentDTO` ‚Äî `store`, `applicationDate`, `adjustmentType`, `amount`, `notes` | Plug & play: cuando el backend est√© listo solo se toca `api-payments.repository.ts` |
 
 
-## 30. Ajustes ó Modal Crear: Driver por SearchableSelect, monto formateado, fecha default ayer
+## 30. Ajustes ÔøΩ Modal Crear: Driver por SearchableSelect, monto formateado, fecha default ayer
 
 **Archivos:**
-- modules/payments/application/presentation/views/adjustments-list.view.tsx ó reescrito modal
-- modules/payments/application/presentation/ui/searchable-select.tsx ó extendido con props nuevas
-- pp/adm/pagos/ajustes/ajustes-client.tsx ó agrega getDriversUseCase
+- modules/payments/application/presentation/views/adjustments-list.view.tsx ÔøΩ reescrito modal
+- modules/payments/application/presentation/ui/searchable-select.tsx ÔøΩ extendido con props nuevas
+- pp/adm/pagos/ajustes/ajustes-client.tsx ÔøΩ agrega getDriversUseCase
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
 | Campo Driver reemplaza Input de texto libre por SearchableSelect con externalSearch + debounce 300ms | El usuario busca por nombre o CURP; la lista se filtra en el use case, no en el front |
-| getDriversUseCase.execute({ page:1, pageSize:50, sortBy:'firstName', sortDirection:'asc', search }) | Respeta la firma IPagination del use case ó sortBy y sortDirection son requeridos |
+| getDriversUseCase.execute({ page:1, pageSize:50, sortBy:'firstName', sortDirection:'asc', search }) | Respeta la firma IPagination del use case ÔøΩ sortBy y sortDirection son requeridos |
 | Opciones del driver: label=nombre completo, description=CURP | El campo description nuevo en SearchableSelectOption se muestra en texto xs debajo del label |
-| SearchableSelect ó nueva prop externalSearch + onExternalSearchChange | Cuando se pasan, el filtrado interno queda desactivado y el padre controla la b˙squeda (plug & play para APIs con debounce) |
-| SearchableSelect ó description en SearchableSelectOption | Permite mostrar texto secundario (CURP, email, etc.) debajo del label en el dropdown |
-| Fecha de aplicaciÛn default = ayer (getYesterday()) | El caso de uso m·s com˙n es registrar ajustes del dÌa anterior |
+| SearchableSelect ÔøΩ nueva prop externalSearch + onExternalSearchChange | Cuando se pasan, el filtrado interno queda desactivado y el padre controla la bÔøΩsqueda (plug & play para APIs con debounce) |
+| SearchableSelect ÔøΩ description en SearchableSelectOption | Permite mostrar texto secundario (CURP, email, etc.) debajo del label en el dropdown |
+| Fecha de aplicaciÔøΩn default = ayer (getYesterday()) | El caso de uso mÔøΩs comÔøΩn es registrar ajustes del dÔøΩa anterior |
 | Monto: Input texto libre con preview de Intl.NumberFormat('es-MX') en rojo/verde | El tipo 
-umber no permite - al inicio; el texto libre sÌ. Preview muestra la cantidad formateada debajo del input |
-| BotÛn Guardar: disabled={!isValid || isSaving} | Era disabled={isSaving} ó ahora bloqueado hasta que todos los campos sean v·lidos |
-| 	ype: 'error' ? 	ype: 'danger' en todos los toasts de pagos | ToastType solo acepta 'danger' | 'warning' | 'info' | 'success' ó correcciÛn de tipo TS |
-| createDriversModule(toastContext) instanciado con useRef en justes-client.tsx | Sigue el patrÛn del proyecto: mÛdulo instanciado dentro del componente con useRef, no fuera |
+umber no permite - al inicio; el texto libre sÔøΩ. Preview muestra la cantidad formateada debajo del input |
+| BotÔøΩn Guardar: disabled={!isValid || isSaving} | Era disabled={isSaving} ÔøΩ ahora bloqueado hasta que todos los campos sean vÔøΩlidos |
+| 	ype: 'error' ? 	ype: 'danger' en todos los toasts de pagos | ToastType solo acepta 'danger' | 'warning' | 'info' | 'success' ÔøΩ correcciÔøΩn de tipo TS |
+| createDriversModule(toastContext) instanciado con useRef en justes-client.tsx | Sigue el patrÔøΩn del proyecto: mÔøΩdulo instanciado dentro del componente con useRef, no fuera |
 
 
-## 31. SearchableSelect ó fix trigger: muestra valor seleccionado
+## 31. SearchableSelect ÔøΩ fix trigger: muestra valor seleccionado
 
 **Archivo:** `modules/payments/application/presentation/ui/searchable-select.tsx`
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| Trigger siempre mostraba el `placeholder` ignorando `selectedValues` | Bug: el texto del botÛn estaba hardcodeado a `{placeholder}` |
+| Trigger siempre mostraba el `placeholder` ignorando `selectedValues` | Bug: el texto del botÔøΩn estaba hardcodeado a `{placeholder}` |
 | `selectedLabel` derivado de `options.find(o => o.value === selectedValues[0])?.label` | Muestra el label real del item seleccionado |
-| Nueva prop `displayValue` | Fuerza el texto del trigger cuando las options cambian din·micamente (ej. driver con b˙squeda externa ó la lista se vacÌa entre b˙squedas) |
-| `text-foreground` cuando hay selecciÛn, `text-muted-foreground` con placeholder | DistinciÛn visual clara entre "seleccionado" y "sin seleccionar" |
+| Nueva prop `displayValue` | Fuerza el texto del trigger cuando las options cambian dinÔøΩmicamente (ej. driver con bÔøΩsqueda externa ÔøΩ la lista se vacÔøΩa entre bÔøΩsquedas) |
+| `text-foreground` cuando hay selecciÔøΩn, `text-muted-foreground` con placeholder | DistinciÔøΩn visual clara entre "seleccionado" y "sin seleccionar" |
 | Modal ajuste: pasa `displayValue={nombre completo del driver}` | El nombre persiste en el trigger aunque la lista de drivers cambie al escribir en el buscador |
 
 
-## 32. Res˙menes Diarios ó export xlsx real + link driver sutil
+## 32. ResÔøΩmenes Diarios ÔøΩ export xlsx real + link driver sutil
 
 **Archivo:** `modules/payments/application/presentation/views/daily-summaries-list.view.tsx`  
 **Archivo:** `modules/payments/infrastructure/repositories/mock-payments.repository.ts`
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| `<Select onValueChange>` reemplazado por `<DropdownMenu>` (CSV / Excel) | Mismo patrÛn que Pedidos, Bonos y Ajustes ó evita bug de no re-disparo con mismo valor |
-| `exportDailySummaries` y `exportWeeklySummaries` en mock: ahora llaman `generateXlsx()` para xlsx | Antes generaban CSV con mime-type incorrecto ó Excel abrÌa archivo corrupto |
-| BotÛn Exportar con spinner `Loader2` + "ExportandoÖ" y `disabled` durante descarga | Feedback visual, evita doble click |
+| `<Select onValueChange>` reemplazado por `<DropdownMenu>` (CSV / Excel) | Mismo patrÔøΩn que Pedidos, Bonos y Ajustes ÔøΩ evita bug de no re-disparo con mismo valor |
+| `exportDailySummaries` y `exportWeeklySummaries` en mock: ahora llaman `generateXlsx()` para xlsx | Antes generaban CSV con mime-type incorrecto ÔøΩ Excel abrÔøΩa archivo corrupto |
+| BotÔøΩn Exportar con spinner `Loader2` + "ExportandoÔøΩ" y `disabled` durante descarga | Feedback visual, evita doble click |
 | Link driver: `text-primary` ? `underline decoration-dotted underline-offset-2 hover:text-muted-foreground` | El rojo HEB era demasiado llamativo en contexto de tabla; el subrayado punteado indica navegabilidad sin competir |
 
 
-## 33. Resumen Diario Detail ó cards con Ìcono flotante, colores y responsive
+## 33. Resumen Diario Detail ÔøΩ cards con ÔøΩcono flotante, colores y responsive
 
 **Archivo:** `modules/payments/application/presentation/views/daily-summary-detail.view.tsx`
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| Cards de mÈtricas separados en dos filas sem·nticas: Actividad (2 cols) + Montos (1?2?4 cols) | En mobile los montos MXN en 2 columnas se apretaban; 1 col en mobile les da espacio para respirar |
-| Õconos `material-symbols-rounded` flotantes via `<Icon>` en cada card | Congruencia con el men˙ lateral ó mismo sistema de Ìconos, no Lucide |
-| `size={52}`, `opacity-[0.15]`, `absolute right-2 bottom-1`, `overflow-hidden` en card | Visible sin saturar; `overflow-hidden` evita que el Ìcono se salga del borde |
-| Colores por sem·ntica: M.Pedidos verde ∑ M.Bonos verde/neutro ∑ M.Ajustes rojo/verde/neutro ∑ Total rojo/verde | JerarquÌa visual inmediata: el usuario detecta problemas sin leer los n˙meros |
+| Cards de mÔøΩtricas separados en dos filas semÔøΩnticas: Actividad (2 cols) + Montos (1?2?4 cols) | En mobile los montos MXN en 2 columnas se apretaban; 1 col en mobile les da espacio para respirar |
+| ÔøΩconos `material-symbols-rounded` flotantes via `<Icon>` en cada card | Congruencia con el menÔøΩ lateral ÔøΩ mismo sistema de ÔøΩconos, no Lucide |
+| `size={52}`, `opacity-[0.15]`, `absolute right-2 bottom-1`, `overflow-hidden` en card | Visible sin saturar; `overflow-hidden` evita que el ÔøΩcono se salga del borde |
+| Colores por semÔøΩntica: M.Pedidos verde ÔøΩ M.Bonos verde/neutro ÔøΩ M.Ajustes rojo/verde/neutro ÔøΩ Total rojo/verde | JerarquÔøΩa visual inmediata: el usuario detecta problemas sin leer los nÔøΩmeros |
 | Link driver: mismo estilo sutil `decoration-dotted` | Consistencia con el listado |
-| Fecha de ejecuciÛn con Ìcono `schedule` en footer | Contexto temporal claro sin ocupar espacio en el encabezado |
+| Fecha de ejecuciÔøΩn con ÔøΩcono `schedule` en footer | Contexto temporal claro sin ocupar espacio en el encabezado |
 
 | Card | Material Symbol |
 |---|---|
@@ -791,69 +791,313 @@ umber no permite - al inicio; el texto libre sÌ. Preview muestra la cantidad for
 | Total | `payments` |
 
 
-## 34. Res˙menes Semanales ó listado completo con criterios de aceptaciÛn
+## 34. ResÔøΩmenes Semanales ÔøΩ listado completo con criterios de aceptaciÔøΩn
 
 **Archivo:** `modules/payments/application/presentation/views/weekly-summaries-list.view.tsx`  
 **Archivo:** `modules/payments/infrastructure/repositories/mock-payments.repository.ts`
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| 7 columnas: Driver, RFC, Semana (lunes), M. Pedidos, M. Bonos, M. Ajustes, Total | Criterios de aceptaciÛn explÌcitos |
+| 7 columnas: Driver, RFC, Semana (lunes), M. Pedidos, M. Bonos, M. Ajustes, Total | Criterios de aceptaciÔøΩn explÔøΩcitos |
 | Columna "Semana (lunes)" con formato `lun. 3 mar. 2025` | Confirma visualmente que la fecha es el inicio de semana (lunes) |
 | Sort en mock aplicado antes de paginar en todos los campos incluyendo `bonusAmount` y `adjustmentAmount` | Antes el mock no ordenaba weekly summaries |
-| B˙squeda filtra por driver **y RFC** | El mock solo filtraba por nombre/ID ó RFC quedaba fuera |
-| Colores de montos: M.Pedidos verde ∑ M.Bonos verde/neutro ∑ M.Ajustes rojo/verde/neutro ∑ Total rojo/verde en `font-bold` | Consistencia con resumen diario |
-| Export `DropdownMenu` con `isExporting` + spinner | Mismo patrÛn que el resto del mÛdulo |
-| PaginaciÛn 25/50/100, Lazy loading reactivo a p·gina+filtros | Criterios de aceptaciÛn |
+| BÔøΩsqueda filtra por driver **y RFC** | El mock solo filtraba por nombre/ID ÔøΩ RFC quedaba fuera |
+| Colores de montos: M.Pedidos verde ÔøΩ M.Bonos verde/neutro ÔøΩ M.Ajustes rojo/verde/neutro ÔøΩ Total rojo/verde en `font-bold` | Consistencia con resumen diario |
+| Export `DropdownMenu` con `isExporting` + spinner | Mismo patrÔøΩn que el resto del mÔøΩdulo |
+| PaginaciÔøΩn 25/50/100, Lazy loading reactivo a pÔøΩgina+filtros | Criterios de aceptaciÔøΩn |
 | Link driver sutil `decoration-dotted` | Consistencia |
-| Labels de filtros en estilo ejecutivo `text-xs uppercase tracking-wide` | Consistencia con el resto del mÛdulo pagos |
-| TÌtulo + acciones en header (Export y Limpiar a la derecha) | Layout ejecutivo consistente con Bonos y Ajustes |
+| Labels de filtros en estilo ejecutivo `text-xs uppercase tracking-wide` | Consistencia con el resto del mÔøΩdulo pagos |
+| TÔøΩtulo + acciones en header (Export y Limpiar a la derecha) | Layout ejecutivo consistente con Bonos y Ajustes |
 
 
-## 35. Resumen Semanal Detail ó cards, responsive, colores, Ìconos
+## 35. Resumen Semanal Detail ÔøΩ cards, responsive, colores, ÔøΩconos
 
 **Archivo:** `modules/payments/application/presentation\views\weekly-summary-detail.view.tsx`
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| Fila 1: Check-ins ∑ Pedidos ∑ T.Espera ∑ T.Trabajo en `grid-cols-2 sm:grid-cols-4` | Valores cortos ó caben bien en 2 cols en mobile, 4 en desktop |
-| Fila 2: M.Pedidos ∑ M.Bonos ∑ M.Ajustes ∑ Total en `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` | Montos MXN en 1 col en mobile para que respiren |
-| 8 Ìconos `material-symbols-rounded` flotantes con `opacity-[0.15]` | Consistencia con resumen diario |
-| Nuevos Ìconos: `hourglass_empty` (T.Espera), `timer` (T.Trabajo) | Sem·ntica clara |
-| Colores: misma lÛgica que resumen diario | Consistencia |
-| TÌtulo con fecha del lunes: `weekday: 'long'` ? "lunes 3 de marzo de 2025" + `capitalize` | Criterio de aceptaciÛn: mostrar fecha del lunes |
+| Fila 1: Check-ins ÔøΩ Pedidos ÔøΩ T.Espera ÔøΩ T.Trabajo en `grid-cols-2 sm:grid-cols-4` | Valores cortos ÔøΩ caben bien en 2 cols en mobile, 4 en desktop |
+| Fila 2: M.Pedidos ÔøΩ M.Bonos ÔøΩ M.Ajustes ÔøΩ Total en `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` | Montos MXN en 1 col en mobile para que respiren |
+| 8 ÔøΩconos `material-symbols-rounded` flotantes con `opacity-[0.15]` | Consistencia con resumen diario |
+| Nuevos ÔøΩconos: `hourglass_empty` (T.Espera), `timer` (T.Trabajo) | SemÔøΩntica clara |
+| Colores: misma lÔøΩgica que resumen diario | Consistencia |
+| TÔøΩtulo con fecha del lunes: `weekday: 'long'` ? "lunes 3 de marzo de 2025" + `capitalize` | Criterio de aceptaciÔøΩn: mostrar fecha del lunes |
 | Link driver: `decoration-dotted` sutil | Consistencia |
-| Tabla res˙menes diarios clickeable ? detalle diario | Criterio de aceptaciÛn |
-| Footer con Ìcono `schedule` + fecha/hora de ejecuciÛn completa | Criterio de aceptaciÛn |
+| Tabla resÔøΩmenes diarios clickeable ? detalle diario | Criterio de aceptaciÔøΩn |
+| Footer con ÔøΩcono `schedule` + fecha/hora de ejecuciÔøΩn completa | Criterio de aceptaciÔøΩn |
 | Skeleton estructurado: 8 cards + tabla durante carga | UX de carga consistente |
 
 
-## 36. Botones "Regresar" ó router.back() en todos los detalles
+## 36. Botones "Regresar" ÔøΩ router.back() en todos los detalles
 
 **Archivo:** `modules/shared/application/hooks/use-navigation-loading.hook.ts`  
 **Archivos afectados:** aspirante-detail, driver-detail, training-detail, training-form, adjustment-detail, bonus-detail, order-detail, daily-summary-detail, weekly-summary-detail
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| Nuevo mÈtodo `navigateBack(fallbackUrl)` en `useNavigationLoading` | Centraliza la lÛgica en un solo lugar ó todos los detalles lo consumen |
-| `window.history.length > 1` ? `router.back()` | Regresa a donde venÌas: si llegaste al pedido desde el resumen semanal, vuelves al resumen semanal |
-| Fallback a `router.push(fallbackUrl)` si no hay historial | Safety net para tabs reciÈn abiertos o deeplinks directos |
+| Nuevo mÔøΩtodo `navigateBack(fallbackUrl)` en `useNavigationLoading` | Centraliza la lÔøΩgica en un solo lugar ÔøΩ todos los detalles lo consumen |
+| `window.history.length > 1` ? `router.back()` | Regresa a donde venÔøΩas: si llegaste al pedido desde el resumen semanal, vuelves al resumen semanal |
+| Fallback a `router.push(fallbackUrl)` si no hay historial | Safety net para tabs reciÔøΩn abiertos o deeplinks directos |
 | `showLoading()` antes del back | Mantiene el overlay de carga consistente con `navigateTo` |
-| Fix adicional: `type: 'error'` ? `type: 'danger'` en `driver-detail.view.tsx` | `ToastType` no acepta `'error'` ó corregido de paso |
+| Fix adicional: `type: 'error'` ? `type: 'danger'` en `driver-detail.view.tsx` | `ToastType` no acepta `'error'` ÔøΩ corregido de paso |
 
 
-## 37. Capacitaciones ó export DropdownMenu + badges paleta del sistema
+## 37. Capacitaciones ÔøΩ export DropdownMenu + badges paleta del sistema
 
 **Archivos:**
 - `modules/capacitacion/application/presentation/views/trainings-list.view.tsx`
 - `modules/capacitacion/application/presentation/components/training-type-badge/index.tsx`
 - `modules/capacitacion/application/presentation/ui/dropdown-menu.tsx` *(nuevo re-export)*
 
-| QuÈ | Por quÈ |
+| QuÔøΩ | Por quÔøΩ |
 |---|---|
-| `<Select onValueChange>` reemplazado por `<DropdownMenu>` (CSV / Excel) | Mismo patrÛn que todos los mÛdulos ó evita bug de no re-disparo con mismo valor |
-| BotÛn Exportar con spinner `Loader2` + "ExportandoÖ" y `disabled` durante descarga | Feedback visual consistente con el resto del sistema |
-| `TrainingTypeBadge`: reemplaza `<Badge variant="destructive/default/outline">` por clases del sistema | Los variants de shadcn no siguen la paleta sem·ntica definida en `globals.css` |
-| `Mandatory` ? `badge-revision` (amber) | Requiere atenciÛn/acciÛn ó mismo sem·ntico que "en proceso" |
-| `Optional` ? `badge-inactivo` (gray) | Neutro, sin urgencia ó igual que estados inactivos en otros mÛdulos |
-| `CompanyPolicy` ? `badge-propuesta` (purple) | Institucional/especial ó mismo sem·ntico que propuestas y categorÌas especiales |
+| `<Select onValueChange>` reemplazado por `<DropdownMenu>` (CSV / Excel) | Mismo patrÔøΩn que todos los mÔøΩdulos ÔøΩ evita bug de no re-disparo con mismo valor |
+| BotÔøΩn Exportar con spinner `Loader2` + "ExportandoÔøΩ" y `disabled` durante descarga | Feedback visual consistente con el resto del sistema |
+| `TrainingTypeBadge`: reemplaza `<Badge variant="destructive/default/outline">` por clases del sistema | Los variants de shadcn no siguen la paleta semÔøΩntica definida en `globals.css` |
+| `Mandatory` ? `badge-revision` (amber) | Requiere atenciÔøΩn/acciÔøΩn ÔøΩ mismo semÔøΩntico que "en proceso" |
+| `Optional` ? `badge-inactivo` (gray) | Neutro, sin urgencia ÔøΩ igual que estados inactivos en otros mÔøΩdulos |
+| `CompanyPolicy` ? `badge-propuesta` (purple) | Institucional/especial ÔøΩ mismo semÔøΩntico que propuestas y categorÔøΩas especiales |
+
+
+## 38. Tablas ‚Äî Color de texto unificado
+
+**Archivo:** `components/ui/table.tsx`
+
+| Qu√© | Por qu√© |
+|---|---|
+| `TableHead` (`th`): `text-muted-foreground` ‚Üí `text-foreground` | Los encabezados usaban gris apagado; deben tener el mismo color oscuro que el cuerpo |
+| `TableCell` (`td`): sin clase de color ‚Üí `text-foreground` | Sin color expl√≠cito, las celdas heredaban valores inconsistentes seg√∫n el contexto |
+
+**Color aplicado:** `oklch(0.2405 0.012 84.56)` / `#221f19` ‚Äî mapeado al token `text-foreground` del design system (`--foreground` en `globals.css`).
+
+**Cobertura:** El componente `table.tsx` es centralizado y re-exportado por todos los m√≥dulos. El cambio aplica globalmente a las 13+ vistas que usan tablas (capacitacion, drivers, payments, aspirantes) sin modificar componentes individuales.
+
+
+## 39. Capacitaciones ‚Äî Badges columna "Tipo" con paleta espec√≠fica
+
+**Archivo:** `modules/capacitacion/application/presentation/components/training-type-badge/index.tsx`
+
+**Problema:** Los badges usaban clases globales (`badge-revision`, `badge-inactivo`, `badge-propuesta`) que aplican amber, gray y purple gen√©ricos ‚Äî y en el caso de `badge-revision` usaba el mismo amber que otros estados del sistema, no la paleta aprobada para esta columna. Adem√°s `Obligatorio` heredaba colores de rojo/destructive del tema.
+
+**Soluci√≥n:** Estilos inline espec√≠ficos por tipo, sin tocar las clases globales (que siguen siendo usadas por otros m√≥dulos con su sem√°ntica propia).
+
+| Tipo | Border | Background | Texto |
+|---|---|---|---|
+| **Opcional** | `oklch(0.879 0.169 91.605)` / `#FFD230` (amber-300) | `oklch(0.962 0.059 95.617)` / `#FEF3C6` (amber-100) | `oklch(0.2405 0.012 84.56)` / `#221f19` |
+| **Pol√≠tica de empresa** | `oklch(71.98% 0.0907 227.557)` / `#62B0D1` (chart-3) | `oklch(94.8% 0.0188 222.164)` / `#E1F1F7` (chart-5) | `oklch(0.2405 0.012 84.56)` / `#221f19` |
+| **Obligatorio** | `oklch(0.6813 0.1223 13.71)` / `#D97782` (rosa-rojo suave) | `oklch(0.9358 0.0222 7.19)` / `#F8E4E7` | `oklch(0.2405 0.012 84.56)` / `#221f19` |
+
+> Las clases globales `badge-*` no fueron modificadas ‚Äî siguen vigentes para el resto del sistema.
+
+
+## 40. Comunicaci√≥n / Quejas ‚Äî Badges columnas "Tipo" y "Estado" con paleta espec√≠fica
+
+**Archivo:** `app/adm/complaints/page.tsx`
+
+**Problema:** Los badges de la tabla usaban clases globales (`badge-rechazado`, `badge-revision`, `badge-pendiente`, `badge-aprobado`) que aplican colores gen√©ricos del sistema ‚Äî incluyendo el rojo destructive para "Queja" y "Nueva", que no corresponde a la paleta aprobada.
+
+**Soluci√≥n:** Se reemplazaron las funciones `getTypeBadgeClass` y `getStatusBadgeClass` por objetos de estilo `TYPE_BADGE_STYLES` y `STATUS_BADGE_STYLES` con valores inline exactos. Los `<Badge>` en tabla usan ahora `style={...}` en lugar de `className`. Las funciones `getTypeBadgeVariant` / `getStatusBadgeVariant` (usadas en chips de filtros) no fueron modificadas.
+
+**Columna Tipo:**
+
+| Tipo | Border | Background | Texto |
+|---|---|---|---|
+| **Comentario** | `oklch(0.869 0.022 252.894)` / `#CAD5E2` (slate-300) | `oklch(0.968 0.007 247.896)` / `#F1F5F9` (slate-100) | `#221f19` |
+| **Queja** | `oklch(0.6813 0.1223 13.71)` / `#D97782` | `oklch(0.9358 0.0222 7.19)` / `#F8E4E7` | `#221f19` |
+| **Aclaraci√≥n** | `oklch(71.98% 0.0907 227.557)` / `#62B0D1` (chart-3) | `oklch(94.8% 0.0188 222.164)` / `#E1F1F7` (chart-5) | `#221f19` |
+
+**Columna Estado:**
+
+| Estado | Border | Background | Texto |
+|---|---|---|---|
+| **En proceso** | `oklch(0.879 0.169 91.605)` / `#FFD230` (amber-300) | `oklch(0.962 0.059 95.617)` / `#FEF3C6` (amber-100) | `#221f19` |
+| **Nueva** | `oklch(82.7% 0.119 306.383)` / `#DAB2FF` (purple-300) | `oklch(94.6% 0.033 307.174)` / `#F3E8FF` (purple-100) | `#221f19` |
+| **Resuelta** | `oklch(79.2% 0.209 151.711)` / `#05DF72` (green-400) | `oklch(96.2% 0.044 156.743)` / `#DCFCE7` (green-100) | `#221f19` |
+
+> Las clases globales `badge-*` y los chips de filtros no fueron modificados.
+
+
+## 41. Filtros toggle ‚Äî Color coherente con etiquetas de tabla (scope: Comunicaci√≥n / Quejas)
+
+**Archivo:** `app/adm/complaints/page.tsx`
+
+**Problema:** Los chips toggle de filtro ("Tipo" y "Estado") al activarse aplicaban `variant={getTypeBadgeVariant(...)}` / `variant={getStatusBadgeVariant(...)}`, que usaban variantes gen√©ricas de shadcn (`destructive`, `default`, `secondary`) ‚Äî colores completamente distintos a los de las etiquetas en la tabla.
+
+**Soluci√≥n:** Al activarse un chip, se aplica el mismo `style` object que la etiqueta correspondiente en tabla (`TYPE_BADGE_STYLES[type]` / `STATUS_BADGE_STYLES[status]`). En estado inactivo permanece `variant="outline"` sin estilo extra (neutro). Se elimin√≥ el uso de `getTypeBadgeVariant` y `getStatusBadgeVariant` en los filtros (esas funciones se conservan por la p√°gina de detalle `[id]/page.tsx`).
+
+**Comportamiento:**
+| Estado chip | Estilo aplicado |
+|---|---|
+| No seleccionado | `variant="outline"` ‚Äî borde gris neutro |
+| Seleccionado | `style={TYPE_BADGE_STYLES[type]}` / `style={STATUS_BADGE_STYLES[status]}` ‚Äî id√©ntico a la etiqueta en tabla |
+
+**Alcance del cambio:** Solo `complaints/page.tsx`. Las dem√°s vistas con tabla (Capacitaci√≥n, Drivers, Pagos, Aspirantes) usan `Select`, `Tabs` o `Chip` de texto para filtrar ‚Äî no tienen badges toggle, por lo que no requieren ajuste.
+
+
+## 42. Drivers y Aspirantes ‚Äî Filtros de Estado: de Tabs a pills con color coherente y bot√≥n X
+
+**Archivos modificados:**
+- `modules/drivers/application/presentation/components/driver-status-badge/index.tsx`
+- `modules/drivers/application/presentation/views/drivers-list.view.tsx`
+- `modules/aspirantes/application/presentation/components/applicant-status-badge/index.tsx`
+- `modules/aspirantes/application/presentation/views/applicants-list.view.tsx`
+
+**Problema:** Ambas vistas usaban `<Tabs>` para filtrar por estado, lo que solo permit√≠a selecci√≥n √∫nica, no ten√≠a bot√≥n X para deseleccionar individualmente, y no guardaba relaci√≥n visual con los colores de las etiquetas en tabla (que usaban `badge-*` globales con colores gen√©ricos).
+
+**Soluci√≥n:** Se migraron los filtros a pills badge multi-seleccionables (mismo patr√≥n que `complaints/page.tsx`). Simult√°neamente se actualizaron los badge components para usar estilos inline, logrando coherencia completa filtro ‚Üî tabla.
+
+### DriverStatusBadge ‚Äî Paleta nueva
+
+| Estado | Border | Background | Comportamiento filtro |
+|---|---|---|---|
+| **Habilitado** | green-400 `#05DF72` | green-100 `#DCFCE7` | Multi-select (puede coexistir con otros) |
+| **Deshabilitado** | purple-300 `#DAB2FF` | purple-100 `#F3E8FF` | Multi-select |
+| **Suspendido** | amber-300 `#FFD230` | amber-100 `#FEF3C6` | Multi-select |
+
+> El hook `useDriversList` ya soportaba `driverStatusFilter: string[]` ‚Äî no requiri√≥ cambios en capa de datos.
+
+### ApplicantStatusBadge ‚Äî Paleta nueva
+
+| Estado | Border | Background | Comportamiento filtro |
+|---|---|---|---|
+| **Pendiente** | slate-300 `#CAD5E2` | slate-100 `#F1F5F9` | Toggle √∫nico (click activa, click vuelve a deseleccionar con X) |
+| **En Revisi√≥n** | amber-300 `#FFD230` | amber-100 `#FEF3C6` | Toggle √∫nico |
+| **Propuesta enviada** | purple-300 `#DAB2FF` | purple-100 `#F3E8FF` | Toggle √∫nico |
+| **Aprobado** | green-400 `#05DF72` | green-100 `#DCFCE7` | Toggle √∫nico |
+| **Rechazado** | rosa suave `#D97782` | `#F8E4E7` | Toggle √∫nico |
+
+> El hook `useApplicantsList` acepta un solo string en `applicationStatus` ‚Äî las pills funcionan como toggle exclusivo (activar una desactiva la anterior impl√≠citamente). Se eliminaron las opciones "Activos" y "Todos" que ten√≠an sem√°ntica especial en el Tabs; el estado vac√≠o equivale a "todos".
+
+**Patr√≥n aplicado en ambas vistas:**
+- Inactivo: `variant="outline"` sin style extra ‚Äî borde gris neutro
+- Activo: `style={BADGE_STYLES[value]}` + icono `<X>` para deseleccionar
+- Export: `DRIVER_STATUS_STYLES` y `APPLICANT_STATUS_STYLES` exportados desde los badge components para reutilizaci√≥n en las vistas
+
+
+## 43. Documentos Vencidos ‚Äî Bot√≥n de exportar unificado (DropdownMenu)
+
+**Archivo:** `modules/drivers/application/presentation/views/expired-documents.view.tsx`
+
+**Problema:** Hab√≠a dos botones separados ("Exportar Excel" y "Exportar CSV") sin feedback visual durante la descarga.
+
+**Soluci√≥n:** Reemplazados por un √∫nico `<DropdownMenu>` con opciones CSV / Excel (.xlsx), spinner `Loader2` + texto "Exportando..." mientras la operaci√≥n est√° en curso, y bot√≥n deshabilitado durante la exportaci√≥n. Mismo patr√≥n que Capacitaci√≥n, Bonos y Ajustes.
+
+| Antes | Despu√©s |
+|---|---|
+| 2 botones: "Exportar Excel" + "Exportar CSV" | 1 bot√≥n "Exportar" con dropdown |
+| Sin feedback de carga | Spinner + "Exportando..." + `disabled` durante descarga |
+| Import `Download` solo | Import `DropdownMenu*` + estado `isExporting` |
+
+
+## 44. Comunicaci√≥n / Quejas ‚Äî Eliminados badges "Tipos: N" y "Estados: N" en barra de filtros activos
+
+**Archivo:** `app/adm/complaints/page.tsx`
+
+| Qu√© | Por qu√© |
+|---|---|
+| Eliminado badge "Tipos: N" de la barra de filtros activos | Redundante: las pills de tipo ya muestran visualmente cu√°les est√°n activas con su color y el √≠cono X |
+| Eliminado badge "Estados: N" de la barra de filtros activos | Mismo motivo ‚Äî las pills de estado son suficiente indicador |
+
+> `activeFiltersCount` conserva su l√≥gica de conteo (types y statuses siguen sumando al contador) para que el texto "N filtro(s) activo(s)" y el bot√≥n "Limpiar filtros" funcionen correctamente.
+
+
+## 45. Global ‚Äî Bot√≥n Exportar unificado: DropdownMenu en header a la derecha del t√≠tulo
+
+**Alcance:** 7 vistas auditadas y corregidas.
+
+**Patr√≥n aplicado:**
+- Posici√≥n: fila del t√≠tulo (`flex items-start justify-between`) ‚Äî separado visualmente de los filtros
+- Componente: `<DropdownMenu>` con opciones CSV / Excel (.xlsx)
+- Feedback: spinner `Loader2` + texto "Exportando‚Ä¶" + bot√≥n `disabled` durante descarga
+- √çcono `<Download>` siempre visible en estado normal
+
+| Vista | Antes | Cambio |
+|---|---|---|
+| `aspirantes-list.view.tsx` | `<Select>` dentro de la fila de b√∫squeda | DropdownMenu en header + `isExporting` local + re-export `dropdown-menu.tsx` creado |
+| `drivers-list.view.tsx` | `<Select>` dentro de la fila de b√∫squeda | DropdownMenu en header + `isExporting` del hook |
+| `complaints/page.tsx` | `<Select>` en header (4 opciones CSV/Excel √ó p√°gina/todos) | DropdownMenu con mismas 4 opciones + `isExporting` |
+| `daily-summaries-list.view.tsx` | DropdownMenu dentro de fila de filtros | Movido al header |
+| `orders-list.view.tsx` | DropdownMenu dentro de fila de filtros | Movido al header |
+| `trainings-list.view.tsx` | DropdownMenu dentro de fila de b√∫squeda | Movido al header (junto a "Crear capacitaci√≥n") + import `Download` agregado |
+| `expired-documents.view.tsx` | DropdownMenu en header ‚úÖ | Sin cambio (ya estaba correcto) |
+| `weekly-summaries-list.view.tsx` | DropdownMenu en header ‚úÖ | Sin cambio |
+| `adjustments-list.view.tsx` | DropdownMenu en header ‚úÖ | Sin cambio |
+| `bonuses-list.view.tsx` | DropdownMenu en header ‚úÖ | Sin cambio |
+
+
+## 46. Global ‚Äî √çconos en botones Exportar y Limpiar filtros + limpieza de cabecera "Filtros" en Quejas
+
+**Problema:** Varios m√≥dulos ten√≠an los botones sin √≠cono (`<Download>` o `<FilterX>`). La vista de Quejas ten√≠a adem√°s un bloque de cabecera "Filtros" con √≠cono de embudo y t√≠tulo que no existe en el resto del sistema.
+
+**Cambios por archivo:**
+
+| Archivo | Cambio |
+|---|---|
+| `weekly-summaries-list.view.tsx` | `Download` + `FilterX` a√±adidos a imports; aplicados en bot√≥n Exportar y ambos Limpiar filtros |
+| `adjustments-list.view.tsx` | `Download` + `FilterX` a√±adidos; aplicados en bot√≥n Exportar y ambos Limpiar filtros |
+| `daily-summaries-list.view.tsx` | `FilterX` a√±adido; aplicado en ambos Limpiar filtros (Download ya exist√≠a) |
+| `bonuses-list.view.tsx` | `FilterX` a√±adido; aplicado en ambos Limpiar filtros |
+| `orders-list.view.tsx` | `FilterX` a√±adido; aplicado en ambos Limpiar filtros |
+| `trainings-list.view.tsx` | `FilterX` a√±adido; aplicado en ambos Limpiar filtros |
+| `complaints/page.tsx` | Eliminado bloque cabecera con `<Filter>` + texto "Filtros". Bot√≥n "Limpiar filtros" queda alineado a la derecha con `variant="outline"` + `<FilterX>` ‚Äî igual al patr√≥n del sistema. Import `Filter` eliminado |
+
+
+## 47. Global ‚Äî Reubicaci√≥n del bot√≥n "Limpiar filtros" acoplado a los inputs
+
+**Problema:** El bot√≥n "Limpiar filtros" aparec√≠a en una fila separada por encima de los inputs de filtro, visualmente desacoplado.
+
+**Soluci√≥n por vista:**
+
+| Archivo | Soluci√≥n |
+|---|---|
+| `weekly-summaries-list.view.tsx` | Grid colapsado a un solo `flex-row sm:items-end` con todos los filtros (b√∫squeda + fechas + bot√≥n) en la misma fila |
+| `daily-summaries-list.view.tsx` | Mismo patr√≥n: `flex-row sm:items-end` con b√∫squeda + fecha desde + fecha hasta + bot√≥n en una sola fila |
+| `adjustments-list.view.tsx` | `space-y-4` ‚Üí `flex flex-col gap-3`; fila de b√∫squeda + bot√≥n con `sm:items-center`; grid secundario con `gap-3` |
+| `orders-list.view.tsx` | Mismo patr√≥n que adjustments |
+| `bonuses-list.view.tsx` | Bot√≥n integrado como 3ra celda del grid de Tienda/Tipo (`lg:grid-cols-3 lg:items-end`), alineado al fondo con `lg:self-end` |
+
+
+## 48. Global ‚Äî Bot√≥n "Limpiar filtros" movido al header junto a "Exportar"
+
+**Problema:** El bot√≥n quedaba dentro del √°rea de filtros, visualmente desacoplado del resto de acciones principales.
+
+**Decisi√≥n:** El bot√≥n "Limpiar filtros" va justo antes del bot√≥n "Exportar" en el header de cada m√≥dulo, formando un grupo de acciones consistente. Se elimin√≥ de todas las √°reas de filtros (se conserva solo la instancia del estado vac√≠o de resultados en `CardContent`).
+
+| Archivo | Cambio |
+|---|---|
+| `weekly-summaries-list.view.tsx` | Bot√≥n movido al header; filtros quedan como grid limpio sin bot√≥n |
+| `daily-summaries-list.view.tsx` | √çdem |
+| `adjustments-list.view.tsx` | √çdem; input de b√∫squeda queda solo en su fila |
+| `orders-list.view.tsx` | √çdem; input de b√∫squeda queda solo en su fila |
+| `bonuses-list.view.tsx` | √çdem; grid Tienda/Tipo vuelve a 2 columnas |
+| `trainings-list.view.tsx` | √çdem |
+| `complaints/page.tsx` | √çdem; se elimin√≥ tambi√©n el `div justify-end` condicional del √°rea de filtros |
+
+
+## 49. Sidebar ‚Äî Bot√≥n de colapso movido al interior del sidebar
+
+**Problema:** El `SidebarTrigger` estaba en el `AppTopbar`, fuera del sidebar, sin contexto visual del men√∫ que controla.
+
+**Cambios:**
+- `app-sidebar/index.tsx`: `SidebarTrigger` agregado al import y colocado dentro del `SidebarHeader` en un `flex row` junto al `SidebarMenu` del logo, para que quede siempre visible independientemente del estado colapsado/expandido
+- `app-topbar.tsx`: `SidebarTrigger` eliminado del topbar en desktop; se agrega de vuelta con `md:hidden` + `Separator` con `md:hidden` para que en **mobile** siga siendo accesible desde la barra superior (en mobile el sidebar es un Sheet y el trigger del interior no es visible)
+
+
+## 50. Global ‚Äî Botones del header responsivos en mobile
+
+**Problema:** En mobile, los botones "Limpiar filtros", "Exportar", "Crear bono", "Crear ajuste" y "Crear capacitaci√≥n" desbordaban el header por el texto largo junto al t√≠tulo del m√≥dulo.
+
+**Soluci√≥n:** En todos los botones de acci√≥n del header:
+- El texto se envuelve en `<span className="hidden sm:inline">` ‚Äî invisible en mobile, visible desde `sm`
+- El `mr-2` del √≠cono cambia a `sm:mr-2` ‚Äî sin margen en mobile (icono solo), con margen en desktop
+- Resultado: mobile muestra solo √≠conos; desktop muestra √≠cono + texto
+
+| Archivo | Botones afectados |
+|---|---|
+| `weekly-summaries-list.view.tsx` | Limpiar filtros, Exportar |
+| `daily-summaries-list.view.tsx` | Limpiar filtros, Exportar |
+| `adjustments-list.view.tsx` | Limpiar filtros, Exportar, Crear ajuste |
+| `orders-list.view.tsx` | Limpiar filtros, Exportar |
+| `bonuses-list.view.tsx` | Limpiar filtros, Exportar, Crear bono |
+| `trainings-list.view.tsx` | Limpiar filtros, Exportar, Crear capacitaci√≥n |
+| `complaints/page.tsx` | Limpiar filtros, Exportar |
