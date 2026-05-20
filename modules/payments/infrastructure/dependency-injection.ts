@@ -39,20 +39,24 @@ export function createPaymentsHttpClient(toastContext?: IToastContext): IHttpCli
 }
 
 export function createPaymentsModule(toastContext?: IToastContext) {
-  const httpClient = createPaymentsHttpClient(toastContext);
-
-  // Repositorio para datos aún sin API real → mock en memoria
+  // Repositorio mock → datos en memoria, plug & play.
   const mockRepository = new MockPaymentsRepository();
 
-  // Repositorio API → siempre conectado al backend real,
-  // independientemente del ambiente (incluyendo local).
-  // En local apunta a NEXT_PUBLIC_API_URL=https://localhost:7075
+  // Repositorio API → listo para conectar cuando el backend tenga BD real.
+  // Para activar un endpoint: cambiar mockRepository → apiRepository en el use case correspondiente.
+  // NOTA: En modo NEXT_PUBLIC_USE_MOCK_AUTH=true, apiRepository se construye pero
+  // nunca se usa — todos los use cases apuntan a mockRepository.
+  const useMock = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
+  const httpClient = createPaymentsHttpClient(toastContext);
   const apiRepository = new ApiPaymentsRepository(httpClient);
+
+  // getStores: usa mock en demo, API real en los demás entornos.
+  const storesRepository = useMock ? mockRepository : apiRepository;
 
   return {
     useCases: {
-      // ── API real disponible → usa apiRepository ──────────────────────────
-      getStores: new GetStoresUseCase(apiRepository),
+      // ── getStores: API real en producción, mock en demo ───────────────────
+      getStores: new GetStoresUseCase(storesRepository),
 
       // ── Sin API real aún → usa mockRepository ────────────────────────────
       getOrders: new GetOrdersUseCase(mockRepository),

@@ -4,6 +4,7 @@ import { type ICheckModuleAccessUseCase } from '../../domain/contracts/check-mod
 import { type ISessionInfoDTO } from '../../domain/contracts/adm.dto';
 import { type ModuleKey, ModuleAccess } from '../../domain/value-objects/module-access';
 import { type IMenuItem } from '../../domain/contracts/menu-item.interface';
+import { initSessionRepository } from '@/lib/auth';
 
 interface IUseSessionAccessResult {
   sessionInfo: ISessionInfoDTO | null;
@@ -23,6 +24,9 @@ export function useSessionAccess(
   useEffect(() => {
     const loadSession = async () => {
       setIsLoading(true);
+      // Asegurar que IndexedDB esté inicializado antes de leer la sesión.
+      // Esto evita que el guard evalúe con menus=null en navegaciones directas.
+      await initSessionRepository();
       const info = await getSessionInfoUseCase.execute();
       setSessionInfo(info);
       if (info !== null && 'menus' in info) {

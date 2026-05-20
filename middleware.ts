@@ -3,11 +3,20 @@ import type { NextRequest } from 'next/server';
 
 const isDev = process.env.NODE_ENV === 'development';
 const useHttps = process.env.USE_HTTPS === 'true';
+const isMockMode = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
 const serverBaseUrl = process.env.AUTH_URL || 'https://localhost:3000';
 const urlBase = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:3000';
 const apiUrl = !urlBase.endsWith('/') ? `${urlBase}/` : urlBase;
 const serverUrl = !serverBaseUrl.endsWith('/') ? `${serverBaseUrl}/` : serverBaseUrl;
 const cspReportEndpoint = 'api/v1/reporting/csp-reports';
+
+// En modo mock (Vercel demo) no se necesita conectar a Microsoft ni al backend real.
+// La CSP no incluye login.microsoftonline.com ni graph.microsoft.com para
+// cumplir con el principio de menor privilegio en el entorno de demostración.
+const msFormAction  = isMockMode ? '' : 'https://login.microsoftonline.com';
+const msConnectSrc  = isMockMode ? '' : 'https://login.microsoftonline.com https://graph.microsoft.com';
+// En modo mock, apiUrl apunta a un dominio ficticio (mock.spidi.local) que
+// nunca se alcanza — se incluye de todas formas para que el código compile sin errores CSP.
 
 function buildCspHeader(nonce: string): string {
   return [
@@ -16,8 +25,8 @@ function buildCspHeader(nonce: string): string {
     "img-src 'self' data: blob:",
     "font-src 'self' fonts.gstatic.com",
     "frame-ancestors 'self'",
-    "form-action 'self' https://login.microsoftonline.com",
-    `connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com ${apiUrl} ${serverUrl}`,
+    `form-action 'self' ${msFormAction}`.trimEnd(),
+    `connect-src 'self' ${msConnectSrc} ${apiUrl} ${serverUrl}`.replace(/\s+/g, ' ').trimEnd(),
     `report-uri ${apiUrl}${cspReportEndpoint}`,
     `report-to csp-report`,
     "default-src 'self'",

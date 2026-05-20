@@ -6,6 +6,7 @@ import {
 } from '@/modules/shared/infrastructure/dependency-injection';
 import type { IToastContext } from '@/modules/shared/domain/contracts/toast.interface';
 import { ApiApplicantsRepository } from './repositories/api-applicants.repository';
+import { MockApplicantsRepository } from './repositories/mock-aspirantes.repository';
 import { GetApplicantsUseCase } from '../application/use-cases/get-applicants.use-case';
 import { GetApplicantByIdUseCase } from '../application/use-cases/get-applicant-by-id.use-case';
 import { UpdateApplicantUseCase } from '../application/use-cases/update-applicant.use-case';
@@ -25,15 +26,26 @@ import type { IGetApplicantCatalogsUseCase } from '../domain/contracts/get-appli
 import type { IGetApplicantDocumentsUseCase } from '../domain/contracts/get-applicant-documents-use-case.interface';
 import type { IGetApplicantProposalsUseCase } from '../domain/contracts/get-applicant-proposals-use-case.interface';
 
-export function createApplicantsModule(toastContext?: IToastContext) {
-  const httpClient = new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
-    configuracionRepository: createConfiguracionRepository(),
-    idempotencyRepository: createIdempotencyRepository(),
-    tokenRepository: createTokenRepository(),
-    toastContext,
-  });
+// ─── SWAP POINT ───────────────────────────────────────────────────────────────
+// NEXT_PUBLIC_USE_MOCK_AUTH=true  → MockApplicantsRepository (Vercel/demo, 0 HTTP)
+// Cualquier otro entorno           → ApiApplicantsRepository  (backend real + fallback mock)
+// ─────────────────────────────────────────────────────────────────────────────
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
 
-  const repository = new ApiApplicantsRepository(httpClient);
+export function createApplicantsModule(toastContext?: IToastContext) {
+  let repository;
+
+  if (USE_MOCK) {
+    repository = new MockApplicantsRepository();
+  } else {
+    const httpClient = new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
+      configuracionRepository: createConfiguracionRepository(),
+      idempotencyRepository: createIdempotencyRepository(),
+      tokenRepository: createTokenRepository(),
+      toastContext,
+    });
+    repository = new ApiApplicantsRepository(httpClient);
+  }
 
   return {
     useCases: {

@@ -14,9 +14,20 @@ import { ValidateTokenUseCase } from '../application/use-cases/validate-token.us
 import { EnsureTokenValidUseCase } from '../application/use-cases/ensure-token-valid.use-case';
 import { IndexedDbTokenRepository } from '@/modules/shared/infrastructure/tokens/indexed-db-token.repository';
 import { MockSpidiAuthService } from './services/mock-spidi-auth.service';
+import { MockFullAuthService } from './services/mock-full-auth.service';
+
+// ─── SWAP POINT ───────────────────────────────────────────────────────────────
+// Cuando NEXT_PUBLIC_USE_MOCK_AUTH=true (rama Vercel/demo):
+//   - createAuthService()     → MockFullAuthService  (login instantáneo, sin Microsoft)
+//   - createLoginUseCase()    → MockFullAuthService  (idem)
+//   - createValidateTokenUseCase() → MockSpidiAuthService (token SPIDI ficticio)
+//   - createEnsureTokenValidUseCase() → sin refresh real (token mock no expira en demo)
+// En cualquier otro ambiente el flujo real de Entra PKCE se mantiene intacto.
+// ─────────────────────────────────────────────────────────────────────────────
+const USE_MOCK_AUTH = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
 
 export function createAuthService(): IAuthService {
-  return new EntraPkceAuthService();
+  return USE_MOCK_AUTH ? new MockFullAuthService() : new EntraPkceAuthService();
 }
 
 export function createSessionRepository(): ISessionRepository {
@@ -28,7 +39,7 @@ export function createLoginAttemptsRepository(): ILoginAttemptsRepository {
 }
 
 export function createLoginUseCase(): ILoginUseCase {
-  const authService = new EntraPkceAuthService();
+  const authService = USE_MOCK_AUTH ? new MockFullAuthService() : new EntraPkceAuthService();
   const attemptsRepository = createLoginAttemptsRepository();
   return new InitiateLoginUseCase(authService, attemptsRepository);
 }
@@ -36,8 +47,7 @@ export function createLoginUseCase(): ILoginUseCase {
 export function createValidateTokenUseCase(): IValidateTokenUseCase {
   const sessionRepository = createSessionRepository();
   const attemptsRepository = createLoginAttemptsRepository();
-  const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
-  const spidiAuthService = useMockAuth
+  const spidiAuthService = USE_MOCK_AUTH
     ? new MockSpidiAuthService()
     : new SpidiEntraAuthService(process.env.NEXT_PUBLIC_API_URL ?? '');
   const tokenRepository = new IndexedDbTokenRepository();
@@ -50,6 +60,13 @@ export function createValidateTokenUseCase(): IValidateTokenUseCase {
 }
 
 export function createEnsureTokenValidUseCase(): IEnsureTokenValidUseCase {
+  // En modo mock el token nunca "expira" desde el punto de vista del guard:
+  // siempre retornamos isValid=true para evitar que useAuthGuard intente
+  // hacer refresh contra https://mock.spidi.local (URL ficticia) y falle.
+  if (USE_MOCK_AUTH) {
+    return { execute: async () => ({ isValid: true }) };
+  }
+
   const tokenRepository = new IndexedDbTokenRepository();
   const tokenRefreshService = new SpidiTokenRefreshService(
     process.env.NEXT_PUBLIC_API_URL ?? '',

@@ -40,7 +40,8 @@ next-env.d.ts
 /docs/recomendaciones
 
 #docs tba
-/.github/agents/
+/.github
 tsc-output.txt
 
 certificates
+

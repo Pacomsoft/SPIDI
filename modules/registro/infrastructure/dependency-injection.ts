@@ -9,6 +9,7 @@ import { type IRegisterApplicantDto } from '../domain/contracts/register-applica
 import { type ICheckDuplicateResult } from '../domain/contracts/check-duplicate-result.dto';
 import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 import { ApiRegisterRepository } from './repositories/api-register.repository';
+import { MockRegisterRepository } from './repositories/mock-register.repository';
 import { GetStatesUseCase } from '../application/use-cases/get-states.use-case';
 import { RequestVerificationCodeSmsUseCase, type IRequestVerificationCodeSmsInput } from '../application/use-cases/request-verification-code-sms.use-case';
 import { ValidateVerificationCodeSmsUseCase, type IValidateVerificationCodeSmsInput } from '../application/use-cases/validate-verification-code-sms.use-case';
@@ -17,11 +18,19 @@ import { ValidateVerificationCodeEmailUseCase, type IValidateVerificationCodeEma
 import { GuardarDriverUseCase } from '../application/use-cases/guardar-driver.use-case';
 import { CheckDuplicateUseCase, type ICheckDuplicateInput } from '../application/use-cases/check-duplicate.use-case';
 
+// ─── SWAP POINT ───────────────────────────────────────────────────────────────
+// NEXT_PUBLIC_USE_MOCK_AUTH=true  → MockRegisterRepository (Vercel/demo, 0 HTTP)
+// Cualquier otro entorno           → ApiRegisterRepository  (backend real)
+// ─────────────────────────────────────────────────────────────────────────────
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
+
 export function createRegisterRepository(
   httpClient: IHttpClient,
   configuracionRepository?: IConfiguracionRepository,
 ): IRegisterRepository {
-  return new ApiRegisterRepository(httpClient, configuracionRepository);
+  return USE_MOCK
+    ? new MockRegisterRepository()
+    : new ApiRegisterRepository(httpClient, configuracionRepository);
 }
 
 export function createGetStatesUseCase(

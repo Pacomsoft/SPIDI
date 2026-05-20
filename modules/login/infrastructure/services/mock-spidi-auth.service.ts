@@ -123,6 +123,32 @@ const MOCK_ROLE: IRoleDto = {
       canEdit: false,
       canDelete: false,
     },
+    // Home
+    {
+      label: 'Home',
+      code: 'HOME',
+      icon: 'home',
+      path: '/adm/home',
+      displayMenu: false,
+      order: 0,
+      canView: true,
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+    },
+    // Quejas y Aclaraciones
+    {
+      label: 'Quejas y Aclaraciones',
+      code: 'COMUNICACION_QUEJAS',
+      icon: 'forum',
+      path: '/adm/complaints',
+      displayMenu: false,
+      order: 7,
+      canView: true,
+      canCreate: false,
+      canEdit: false,
+      canDelete: false,
+    },
     // Hidden entries — needed for access control but not shown in sidebar
     {
       label: 'Documentos Vencidos',

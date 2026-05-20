@@ -6,8 +6,9 @@ import { type IMenuItem } from "@/modules/adm/domain/contracts/menu-item.interfa
 const GUID_SEGMENT =
   /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NUMBER_SEGMENT = /\/\d+$/;
-// Cubre IDs alfanuméricos con guiones como asp-001, drv-123, abc-XYZ-99
-const ALPHANUMERIC_ID_SEGMENT = /\/[a-zA-Z0-9]+-[a-zA-Z0-9-]+$/;
+// Cubre IDs alfanuméricos con guiones que contienen al menos un dígito: asp-001, drv-123, DS-0001
+// NO captura slugs de ruta como "resumenes-diarios" (solo letras, sin dígitos)
+const ALPHANUMERIC_ID_SEGMENT = /\/[a-zA-Z0-9]*\d[a-zA-Z0-9-]*$/;
 
 function stripTrailingSlash(path: string): string {
   return path.endsWith("/") ? path.substring(0, path.length - 1) : path;
