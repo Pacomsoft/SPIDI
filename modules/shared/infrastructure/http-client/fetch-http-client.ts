@@ -81,11 +81,14 @@ export class FetchHttpClient implements IHttpClient {
     throw FetchError.fromStatus(status);
   }
 
-  private async resolveIdempotencyKey(url: string): Promise<string> {
-    if (this.idempotencyRepository) {
-      return this.idempotencyRepository.addRequest(url);
+  private async resolveIdempotencyKey(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'): Promise<string> {
+    // GET requests son idempotentes por naturaleza — siempre generamos una UUID fresca
+    // para evitar colisiones con llaves ya registradas en el backend.
+    // Solo POST/PUT/DELETE usan el repositorio para rastrear reintentos.
+    if (method === 'GET' || !this.idempotencyRepository) {
+      return uuidv7();
     }
-    return uuidv7();
+    return this.idempotencyRepository.addRequest(url);
   }
 
   /** La llave de idempotencia se debe actualizar independientemente de el estatus de la respuesta */
@@ -98,7 +101,13 @@ export class FetchHttpClient implements IHttpClient {
 
   private async resolveAppId(): Promise<string> {
     if (!this.configuracionRepository) return "";
-    return (await this.configuracionRepository.get(SPIDI_ID_KEY)) ?? "";
+    const existing = await this.configuracionRepository.get(SPIDI_ID_KEY);
+    if (existing) return existing;
+    // Si no existe aún, crearlo en el momento para que el hash del backend sea consistente
+    const { v7: uuidv7id } = await import("uuid");
+    const newId = uuidv7id();
+    await this.configuracionRepository.set(SPIDI_ID_KEY, newId);
+    return newId;
   }
 
   private async resolveAuthorizationHeader(): Promise<Record<string, string>> {
@@ -180,15 +189,16 @@ export class FetchHttpClient implements IHttpClient {
   }
 
   async get<T>(url: string, config?: IHttpConfig): Promise<IHttpResponse<T>> {
-    const [appId, authHeader] = await Promise.all([
+    const urlWithParams = this.buildUrl(url, config);
+    const [appId, authHeader, idempotencyKey] = await Promise.all([
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
+      this.resolveIdempotencyKey(urlWithParams, 'GET'),
     ]);
-    const urlWithParams = this.buildUrl(url, config);
     const response = await fetch(urlWithParams, {
       method: "GET",
       headers: {
-        "Idempotency-Key": await this.resolveIdempotencyKey(url),
+        "Idempotency-Key": idempotencyKey,
         "X-APP-ID": appId,
         "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
@@ -196,7 +206,7 @@ export class FetchHttpClient implements IHttpClient {
         ...config?.headers,
       },
     });
-    await this.updateFromETag(url, response);
+    await this.updateFromETag(urlWithParams, response);
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
@@ -208,17 +218,18 @@ export class FetchHttpClient implements IHttpClient {
     data?: unknown,
     config?: IHttpConfig,
   ): Promise<IHttpResponse<T>> {
-    const [appId, authHeader] = await Promise.all([
+    const urlWithParams = this.buildUrl(url, config);
+    const [appId, authHeader, idempotencyKey] = await Promise.all([
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
+      this.resolveIdempotencyKey(urlWithParams, 'POST'),
     ]);
     const contentTypeHeader = this.resolveContentTypeHeader(data);
-    const urlWithParams = this.buildUrl(url, config);
     const response = await fetch(`${urlWithParams}`, {
       method: "POST",
       headers: {
         ...contentTypeHeader,
-        "Idempotency-Key": await this.resolveIdempotencyKey(url),
+        "Idempotency-Key": idempotencyKey,
         "X-APP-ID": appId,
         "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
@@ -232,7 +243,7 @@ export class FetchHttpClient implements IHttpClient {
             : JSON.stringify(data)
           : undefined,
     });
-    await this.updateFromETag(url, response);
+    await this.updateFromETag(urlWithParams, response);
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
@@ -244,17 +255,18 @@ export class FetchHttpClient implements IHttpClient {
     data?: unknown,
     config?: IHttpConfig,
   ): Promise<IHttpResponse<T>> {
-    const [appId, authHeader] = await Promise.all([
+    const urlWithParams = this.buildUrl(url, config);
+    const [appId, authHeader, idempotencyKey] = await Promise.all([
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
+      this.resolveIdempotencyKey(urlWithParams, 'PUT'),
     ]);
     const contentTypeHeader = this.resolveContentTypeHeader(data);
-    const urlWithParams = this.buildUrl(url, config);
     const response = await fetch(`${urlWithParams}`, {
       method: "PUT",
       headers: {
         ...contentTypeHeader,
-        "Idempotency-Key": await this.resolveIdempotencyKey(url),
+        "Idempotency-Key": idempotencyKey,
         "X-APP-ID": appId,
         "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
@@ -268,7 +280,7 @@ export class FetchHttpClient implements IHttpClient {
             : JSON.stringify(data)
           : undefined,
     });
-    await this.updateFromETag(url, response);
+    await this.updateFromETag(urlWithParams, response);
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }
@@ -279,15 +291,16 @@ export class FetchHttpClient implements IHttpClient {
     url: string,
     config?: IHttpConfig,
   ): Promise<IHttpResponse<T>> {
-    const [appId, authHeader] = await Promise.all([
+    const urlWithParams = this.buildUrl(url, config);
+    const [appId, authHeader, idempotencyKey] = await Promise.all([
       this.resolveAppId(),
       this.resolveAuthorizationHeader(),
+      this.resolveIdempotencyKey(urlWithParams, 'DELETE'),
     ]);
-    const urlWithParams = this.buildUrl(url, config);
     const response = await fetch(`${urlWithParams}`, {
       method: "DELETE",
       headers: {
-        "Idempotency-Key": await this.resolveIdempotencyKey(url),
+        "Idempotency-Key": idempotencyKey,
         "X-APP-ID": appId,
         "X-APP-VERSION": packageInfo.version,
         "X-APP-PLATFORM": "web",
@@ -295,7 +308,7 @@ export class FetchHttpClient implements IHttpClient {
         ...config?.headers,
       },
     });
-    await this.updateFromETag(url, response);
+    await this.updateFromETag(urlWithParams, response);
     if (!response.ok) {
       this.handleErrorResponse(await this.parseBody(response), response.status);
     }

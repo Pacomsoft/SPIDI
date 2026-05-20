@@ -1,8 +1,13 @@
-import type { IPagination } from '@/modules/shared/domain/contracts/pagination.iterface';
+import type { IPagination } from '@/modules/shared/domain/contracts/pagination.interface';
+
+// Estados de documento visibles al front — alineados con RN02, RN03, RN04, RN05
+// Los estados internos de BD (Escaneado, Eliminado) se mapean a 'Pendiente' en el SP
+export type DocumentStatus = 'Pendiente' | 'No legible' | 'Prevalidado' | 'Validado';
 
 export interface IApplicantDocumentSummaryDTO {
+  code: string;   // Identificador corto: NSS, LICENSE, CAR_INSURANCE, INE, CSF, BANK_CLABE
   name: string;
-  status: 'complete' | 'pending' | 'rejected' | 'revision';
+  status: DocumentStatus;
 }
 
 export interface ICatalogItemDTO {
@@ -20,8 +25,8 @@ export interface IApplicantListItemDTO {
   location: string;
   registrationDate: string;
   applicationStatus: 'Pending' | 'In Review' | 'Proposal Sent' | 'Approved' | 'Rejected';
-  documentationStatus: 'Pending' | 'Incomplete' | 'Complete' | 'Review';
-  documents?: IApplicantDocumentSummaryDTO[];
+  // documentationStatus eliminado — el estado vive a nivel de cada documento individual
+  documents: IApplicantDocumentSummaryDTO[]; // siempre presente — 6 docs del catálogo
   vehicle?: {
     make: string;
     model: string;
@@ -34,7 +39,9 @@ export interface IApplicantListItemDTO {
 export interface IApplicantFiltersDTO extends IPagination {
   search?: string;
   applicationStatus?: string;
-  documentationStatus?: string;
+  // Valores válidos: Pendiente | No legible | Prevalidado | Validado
+  // Se traduce a statusIds en el repositorio antes de enviarse al backend
+  documentationStatus?: DocumentStatus | '';
   location?: string;
   dateFrom?: string;
   dateTo?: string;

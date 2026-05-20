@@ -1,9 +1,3 @@
-import { type ModuleKey } from '@/modules/adm/domain/value-objects/module-access';
-
-export interface IMenuItem {
-  title: string;
-  icon: string;
-  url: string;
-  visible: boolean;
-  moduleKey: ModuleKey;
-}
+// Re-exported from shared/domain for backward compatibility.
+// The canonical definition lives in @/modules/shared/domain/contracts/menu-item.interface
+export type { IMenuItem } from '@/modules/shared/domain/contracts/menu-item.interface';

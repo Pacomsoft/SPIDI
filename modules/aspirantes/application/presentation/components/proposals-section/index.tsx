@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../../ui/alert';
 import type { IProposalDTO, ICreateProposalDTO } from '../../../../domain/contracts/applicant-detail.dto';
 import type { ICatalogItemDTO } from '../../../../domain/contracts/applicant-list.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 
 const HORARIOS = [
   { value: '06:00', label: '06:00 AM', hora: 6 }, { value: '07:00', label: '07:00 AM', hora: 7 },

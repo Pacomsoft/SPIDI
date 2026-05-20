@@ -49,6 +49,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
     >
       <head>
+        <meta charSet="utf-8" />
         <meta name="googlebot-news" content="nosnippet" />
         <meta name="googlebot" content="notranslate" />
         {nonce && <meta name="csp-nonce" content={nonce} />}

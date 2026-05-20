@@ -4,5 +4,6 @@
   align-items: center;
   justify-content: center;
   background-color: var(--background);
+  background-image: radial-gradient(ellipse at 60% 20%, color-mix(in oklch, var(--muted) 60%, transparent), transparent 70%);
   padding: 1rem;
 }

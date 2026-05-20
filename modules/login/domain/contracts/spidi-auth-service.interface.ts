@@ -1,24 +1,8 @@
 import { type ITokenDto } from '@/modules/shared/domain/contracts/token.dto';
+import { type IMenuAccess, type IRoleDto } from '@/modules/shared/domain/contracts/menu-access.dto';
 
-export interface IMenuAccess {
-  label: string;
-  code: string;
-  icon: string;
-  path: string;
-  displayMenu: boolean;
-  order: number;
-  canView: boolean;
-  canCreate: boolean;
-  canEdit: boolean;
-  canDelete: boolean;
-}
-
-export interface IRoleDto {
-  name: string;
-  label: string;
-  description: string;
-  menus: IMenuAccess[];
-}
+// Re-exported for backward compatibility
+export type { IMenuAccess, IRoleDto };
 
 export interface ISpidiAuthResultDTO {
   spidiToken: ITokenDto;

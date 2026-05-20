@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
 import type { DateRange } from 'react-day-picker';
 import {
   Search, Download, ChevronLeft, ChevronRight,
-  ArrowUpDown, ArrowUp, ArrowDown, Loader2, ExternalLink, Car, FileText, X,
+  ArrowUpDown, ArrowUp, ArrowDown, Loader2, ExternalLink, Car, FileText,
 } from 'lucide-react';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
@@ -38,20 +38,37 @@ interface IApplicantsListViewProps {
   getSessionInfoUseCase: IGetSessionInfoUseCase;
 }
 
+// Mapeo de estados de negocio a clases CSS (RN02–RN05)
+// Los estados internos de BD (Escaneado, Eliminado) ya fueron normalizados a 'Pendiente' en el SP
+const DOC_STATUS_COLOR_MAP: Record<string, string> = {
+  'Pendiente':   'dot-pendiente',
+  'No legible':  'dot-no-legible',
+  'Prevalidado': 'dot-prevalidado',
+  'Validado':    'dot-validado',
+};
+
+const DOC_STATUS_LABEL_MAP: Record<string, string> = {
+  'Pendiente':   'Pendiente',
+  'No legible':  'No legible',
+  'Prevalidado': 'Prevalidado',
+  'Validado':    'Validado',
+};
+
 function DocumentDots({ documents }: { documents?: IApplicantListItemDTO['documents'] }) {
   if (!documents?.length) return <span className="text-xs text-muted-foreground">—</span>;
-  const complete = documents.filter((d) => d.status === 'complete').length;
-  const colorMap: Record<string, string> = {
-    complete: 'dot-completo', pending: 'dot-pendiente', rejected: 'dot-rechazado', revision: 'dot-revision',
-  };
+  const validated = documents.filter((d) => d.status === 'Validado').length;
   return (
     <div className="flex items-center gap-2">
       <div className="flex gap-1">
         {documents.map((doc, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full ${colorMap[doc.status] ?? ''}`} title={doc.name} />
+          <div
+            key={i}
+            className={`w-2 h-2 rounded-full ${DOC_STATUS_COLOR_MAP[doc.status] ?? 'dot-pendiente'}`}
+            title={`${doc.name}: ${DOC_STATUS_LABEL_MAP[doc.status] ?? doc.status}`}
+          />
         ))}
       </div>
-      <span className="text-xs text-muted-foreground">{complete}/{documents.length}</span>
+      <span className="text-xs text-muted-foreground">{validated}/{documents.length}</span>
     </div>
   );
 }
@@ -61,7 +78,7 @@ export function ApplicantListView({
   exportApplicantsUseCase,
   getCatalogsUseCase,
 }: IApplicantsListViewProps) {
-  const router = useRouter();
+  const { navigateTo } = useNavigationLoading();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selected, setSelected] = useState<IApplicantListItemDTO | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -119,7 +136,9 @@ export function ApplicantListView({
                 </div>
                 <div className="flex flex-col lg:flex-row gap-4">
                   <div className="lg:flex-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-                    <Tabs value={filters.applicationStatus || 'activos'} onValueChange={(v) => handleFilterChange('applicationStatus', v === 'activos' || v === 'todos' ? '' : v)}>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Estado de aspirante</label>
+                      <Tabs value={filters.applicationStatus || 'activos'} onValueChange={(v) => handleFilterChange('applicationStatus', v === 'activos' || v === 'todos' ? '' : v)}>
                       <TabsList className="h-9 w-max lg:w-auto inline-flex">
                         <TabsTrigger value="activos" className="text-xs whitespace-nowrap">Activos</TabsTrigger>
                         <TabsTrigger value="todos" className="text-xs whitespace-nowrap">Todos</TabsTrigger>
@@ -129,29 +148,39 @@ export function ApplicantListView({
                         <TabsTrigger value="Approved" className="text-xs whitespace-nowrap">Aprobado</TabsTrigger>
                         <TabsTrigger value="Rejected" className="text-xs whitespace-nowrap">Rechazado</TabsTrigger>
                       </TabsList>
-                    </Tabs>
+                      </Tabs>
+                    </div>
                   </div>
                   <div className="grid gap-3 grid-cols-1 sm:grid-cols-3 lg:w-auto">
-                    <Select value={filters.documentationStatus || 'todos'} onValueChange={(v) => handleFilterChange('documentationStatus', v === 'todos' ? '' : v)}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Estado docs" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todos los estados</SelectItem>
-                        <SelectItem value="Pending">Pendiente</SelectItem>
-                        <SelectItem value="Incomplete">Incompleto</SelectItem>
-                        <SelectItem value="Complete">Completo</SelectItem>
-                        <SelectItem value="Review">Revisión</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={filters.location || 'todos'} onValueChange={(v) => handleFilterChange('location', v === 'todos' ? '' : v)}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Ubicación" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="todos">Todas las ubicaciones</SelectItem>
-                        {locations.map((loc) => (
-                          <SelectItem key={loc.value} value={loc.value}>{loc.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <DatePickerWithRange date={dateRange} onDateChange={handleDateRangeChange} placeholder="Filtrar fecha" />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Documentación</label>
+                      <Select value={filters.documentationStatus || 'todos'} onValueChange={(v) => handleFilterChange('documentationStatus', v === 'todos' ? '' : v)}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Estado docs" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todos los estados</SelectItem>
+                          <SelectItem value="Pendiente">Pendiente</SelectItem>
+                          <SelectItem value="No legible">No legible</SelectItem>
+                          <SelectItem value="Prevalidado">Prevalidado</SelectItem>
+                          <SelectItem value="Validado">Validado</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Ubicación</label>
+                      <Select value={filters.location || 'todos'} onValueChange={(v) => handleFilterChange('location', v === 'todos' ? '' : v)}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Ubicación" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="todos">Todas las ubicaciones</SelectItem>
+                          {locations.map((loc) => (
+                            <SelectItem key={loc.value} value={loc.value}>{loc.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Fecha de registro</label>
+                      <DatePickerWithRange date={dateRange} onDateChange={handleDateRangeChange} placeholder="Filtrar fecha" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -240,12 +269,7 @@ export function ApplicantListView({
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
             <SheetHeader>
-              <SheetTitle className="flex items-center justify-between">
-                <span>Resumen - {selected?.id}</span>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDrawerOpen(false)}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </SheetTitle>
+              <SheetTitle>Resumen - {selected?.id}</SheetTitle>
               <SheetDescription>Vista rápida del aspirante</SheetDescription>
             </SheetHeader>
             {selected && (
@@ -289,30 +313,21 @@ export function ApplicantListView({
                     </div>
                   </div>
                 )}
-                {selected.documents && (
+                {selected.documents && selected.documents.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                       <FileText className="h-5 w-5" />Documentación
                     </h3>
                     <div className="space-y-2">
-                      {selected.documents.map((doc, i) => {
-                        const colorMap: Record<string, string> = {
-                          complete: 'dot-completo', pending: 'dot-pendiente',
-                          rejected: 'dot-rechazado', revision: 'dot-revision',
-                        };
-                        const labelMap: Record<string, string> = {
-                          complete: 'Completo', pending: 'Pendiente', rejected: 'Rechazado', revision: 'En revisión',
-                        };
-                        return (
+                      {selected.documents.map((doc, i) => (
                           <div key={i} className="flex items-center justify-between py-2 border-b last:border-0">
                             <span className="text-sm">{doc.name}</span>
                             <div className="flex items-center gap-2">
-                              <div className={`w-2 h-2 rounded-full ${colorMap[doc.status] ?? ''}`} />
-                              <span className="text-xs text-muted-foreground">{labelMap[doc.status] ?? doc.status}</span>
+                              <div className={`w-2 h-2 rounded-full ${DOC_STATUS_COLOR_MAP[doc.status] ?? 'dot-pendiente'}`} />
+                              <span className="text-xs text-muted-foreground">{DOC_STATUS_LABEL_MAP[doc.status] ?? doc.status}</span>
                             </div>
                           </div>
-                        );
-                      })}
+                        ))}
                     </div>
                   </div>
                 )}
@@ -323,7 +338,7 @@ export function ApplicantListView({
                   </div>
                 )}
                 <div className="pt-4 border-t">
-                  <Button className="w-full" onClick={() => { setDrawerOpen(false); router.push(`/adm/aspirantes/${selected.id}`); }}>
+                  <Button className="w-full" onClick={() => { setDrawerOpen(false); navigateTo(`/adm/aspirantes/${selected.id}`); }}>
                     <ExternalLink className="mr-2 h-4 w-4" />Ver detalle completo
                   </Button>
                 </div>

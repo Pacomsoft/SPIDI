@@ -3,12 +3,11 @@
 import { FetchHttpClient } from '@/modules/shared/infrastructure/http-client/fetch-http-client';
 import { IndexedDbConfiguracionRepository } from '@/modules/shared/infrastructure/configuracion/indexed-db-configuracion.repository';
 import { RegistroView } from '@/modules/registro/application/presentation/views/registro.view';
-import { createRegistroModule, createRegisterRepository } from '@/modules/registro/infrastructure/dependency-injection';
+import { createRegistroModule } from '@/modules/registro/infrastructure/dependency-injection';
 
 const configuracionRepository = new IndexedDbConfiguracionRepository();
 const httpClient = new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', { configuracionRepository });
-const { useCases } = createRegistroModule(httpClient, configuracionRepository);
-const registerRepository = createRegisterRepository(httpClient, configuracionRepository);
+const { useCases, configuracionRepository: configRepo } = createRegistroModule(httpClient, configuracionRepository);
 
 export function RegistroClient() {
   return (
@@ -19,8 +18,8 @@ export function RegistroClient() {
       requestVerificationCodeEmailUseCase={useCases.requestVerificationCodeEmail}
       validateVerificationCodeEmailUseCase={useCases.validateVerificationCodeEmail}
       guardarDriverUseCase={useCases.guardarDriver}
-      configuracionRepository={configuracionRepository}
-      registerRepository={registerRepository}
+      checkDuplicateUseCase={useCases.checkDuplicate}
+      configuracionRepository={configRepo}
     />
   );
 }

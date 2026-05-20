@@ -1,5 +1,5 @@
 /** Resultado general de todos los repositorios que usen IHttpClient para manejar las respuestas del API diferentes a 200 */
-interface IResultApi<T> {
+export interface IResultApi<T> {
     /** Success true solo significa que existe data; de lo contrario existe error */
     success: boolean;
     /** Data es el resultado esperado del API */

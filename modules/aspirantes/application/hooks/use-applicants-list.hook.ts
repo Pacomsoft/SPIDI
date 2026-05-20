@@ -35,10 +35,14 @@ export function useApplicantsList(
   const fetchApplicants = useCallback(
     async (currentFilters: IApplicantFiltersDTO) => {
       setIsLoading(true);
+      setItems([]);  // limpiar antes de fetch para no mostrar datos obsoletos
       const result = await getApplicantsUseCase.execute(currentFilters);
       if (result.success && result.data) {
         setItems(result.data.items);
         setTotal(result.data.total);
+      } else {
+        setItems([]);
+        setTotal(0);
       }
       setIsLoading(false);
     },
@@ -52,10 +56,10 @@ export function useApplicantsList(
   useEffect(() => {
     const loadCatalogs = async () => {
       const result = await getCatalogsUseCase.execute({
-        endpoints: [API_ENDPOINTS.CATALOGS_STATES, API_ENDPOINTS.CATALOGS_APPLICATION_STATUSES],
+        endpoints: [API_ENDPOINTS.CATALOGS_CITIES, API_ENDPOINTS.CATALOGS_APPLICATION_STATUSES],
       });
-      if (result[API_ENDPOINTS.CATALOGS_STATES]) {
-        setLocations(result[API_ENDPOINTS.CATALOGS_STATES]);
+      if (result[API_ENDPOINTS.CATALOGS_CITIES]) {
+        setLocations(result[API_ENDPOINTS.CATALOGS_CITIES]);
       }
       if (result[API_ENDPOINTS.CATALOGS_APPLICATION_STATUSES]) {
         setApplicationStatuses(result[API_ENDPOINTS.CATALOGS_APPLICATION_STATUSES]);

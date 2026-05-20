@@ -1,4 +1,4 @@
-import { type IPagination } from '@/modules/shared/domain/contracts/pagination.iterface';
+import { type IPagination } from '@/modules/shared/domain/contracts/pagination.interface';
 
 export interface IDriverListItemDTO {
   id: string;

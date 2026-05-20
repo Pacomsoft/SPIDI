@@ -16,10 +16,12 @@ import { type IRequestVerificationCodeEmailInput } from "../../use-cases/request
 import { type IValidateVerificationCodeEmailInput } from "../../use-cases/validate-verification-code-email.use-case";
 import { useStates } from "../../hooks/use-states.hook";
 import { useToast } from "@/modules/shared/application/hooks/use-toast.hook";
-import { type IRegisterRepository } from "../../../domain/contracts/register-repository.interface";
+import { type ICheckDuplicateResult } from "../../../domain/contracts/check-duplicate-result.dto";
+import { type ICheckDuplicateInput } from "../../use-cases/check-duplicate.use-case";
+import type { IResultApi } from "@/modules/shared/domain/entities/result-api.interface";
 import { SpidiLogo } from "@/modules/shared/application/presentation/components/spidi-logo";
-import "@/app/landing.css";
-import "@/app/registro/registro.css";
+import "../styles/registro-shared.css";
+import "../styles/registro.css";
 import { EstadoVerificacionOtp } from "@/modules/registro/domain/value-objects/estado-verificacion-otp";
 import { v7 as uuidV7 } from "uuid";
 import { IndexedDbConstantes } from "@/modules/shared/domain/value-objects/configuration-repository.constants";
@@ -180,8 +182,8 @@ interface IRegistroViewProps {
     IRegistroDTO,
     IResultApi<IRegisterApplicantDto>
   >;
+  checkDuplicateUseCase: IUseCase<ICheckDuplicateInput, IResultApi<ICheckDuplicateResult>>;
   configuracionRepository: IConfiguracionRepository;
-  registerRepository: IRegisterRepository;
 }
 
 export function RegistroView({
@@ -191,8 +193,8 @@ export function RegistroView({
   requestVerificationCodeEmailUseCase,
   validateVerificationCodeEmailUseCase,
   guardarDriverUseCase,
+  checkDuplicateUseCase,
   configuracionRepository,
-  registerRepository,
 }: IRegistroViewProps) {
   const router = useRouter();
   const { showLoading, hideLoading } = useGlobalLoading();
@@ -745,10 +747,10 @@ export function RegistroView({
   const handleNext = async () => {
     if (currentStep === 1) {
       if (validateAllStep1()) {
-        const result = await registerRepository.checkDuplicate(
-          formData.phone,
-          formData.email,
-        );
+        const result = await checkDuplicateUseCase.execute({
+          phoneNumber: formData.phone,
+          email: formData.email,
+        });
         if (result.success && result.data?.duplicatedFields.length === 0) {
           setCurrentStep(2);
         } else {

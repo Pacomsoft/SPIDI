@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ArrowLeft, Loader2, Camera, AlertCircle } from 'lucide-react';
+import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { AccessGuard } from '@/modules/adm/application/presentation/components/access-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
@@ -12,6 +13,8 @@ import type { IUpdateApplicantUseCase } from '../../../domain/contracts/update-a
 import type { IDeleteApplicantUseCase } from '../../../domain/contracts/delete-applicant-use-case.interface';
 import type { ICreateProposalUseCase } from '../../../domain/contracts/create-proposal-use-case.interface';
 import type { IGetApplicantCatalogsUseCase } from '../../../domain/contracts/get-applicant-catalogs-use-case.interface';
+import type { IGetApplicantDocumentsUseCase } from '../../../domain/contracts/get-applicant-documents-use-case.interface';
+import type { IGetApplicantProposalsUseCase } from '../../../domain/contracts/get-applicant-proposals-use-case.interface';
 import type { IGetSessionInfoUseCase } from '@/modules/adm/domain/contracts/get-session-info-use-case.interface';
 import type { ICheckModuleAccessUseCase } from '@/modules/adm/domain/contracts/check-module-access-use-case.interface';
 import { useApplicantDetail } from '../../../application/hooks/use-applicant-detail.hook';
@@ -37,6 +40,8 @@ interface IApplicantDetailViewProps {
   deleteApplicantUseCase: IDeleteApplicantUseCase;
   createProposalUseCase: ICreateProposalUseCase;
   getCatalogsUseCase: IGetApplicantCatalogsUseCase;
+  getDocumentsUseCase: IGetApplicantDocumentsUseCase;
+  getProposalsUseCase: IGetApplicantProposalsUseCase;
   checkModuleAccessUseCase: ICheckModuleAccessUseCase;
   getSessionInfoUseCase: IGetSessionInfoUseCase;
 }
@@ -47,10 +52,12 @@ export function ApplicantDetailView({
   deleteApplicantUseCase,
   createProposalUseCase,
   getCatalogsUseCase,
+  getDocumentsUseCase,
+  getProposalsUseCase,
   getSessionInfoUseCase,
 }: IApplicantDetailViewProps) {
   const params = useParams();
-  const router = useRouter();
+  const { navigateTo, navigateBack } = useNavigationLoading();
   const id = params.id as string;
   const [internalNotes, setInternalNotes] = useState('');
 
@@ -60,6 +67,7 @@ export function ApplicantDetailView({
   } = useApplicantDetail(
     id, getApplicantByIdUseCase, updateApplicantUseCase,
     deleteApplicantUseCase, createProposalUseCase, getCatalogsUseCase,
+    getDocumentsUseCase, getProposalsUseCase,
   );
 
   const isRequiredComplete = useMemo(() => {
@@ -102,7 +110,7 @@ export function ApplicantDetailView({
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => router.push('/adm/aspirantes')}>
+            <Button variant="outline" size="icon" onClick={() => navigateBack('/adm/aspirantes')}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="relative">
@@ -204,7 +212,7 @@ export function ApplicantDetailView({
 
         {/* Sticky footer */}
         <div className="flex justify-end gap-4 sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 border-t">
-          <Button variant="outline" onClick={() => router.push('/adm/aspirantes')}>Cancelar</Button>
+          <Button variant="outline" onClick={() => navigateBack('/adm/aspirantes')}>Cancelar</Button>
           <AccessGuard
             code={MODULE_KEY}
             action={PermissionAction.Edit}

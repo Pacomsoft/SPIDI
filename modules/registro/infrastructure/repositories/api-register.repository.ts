@@ -9,6 +9,7 @@ import { type IRegistroDTO } from "../../domain/contracts/registro.dto";
 import { type IRegisterApplicantDto } from "../../domain/contracts/register-applicant.dto";
 import { objectToFormData } from "@/modules/shared/domain/utils/object-to-formdata.util";
 import { API_ENDPOINTS } from "@/modules/shared/domain/contracts/api-endpoints.constants";
+import type { IResultApi } from "@/modules/shared/domain/entities/result-api.interface";
 
 interface IApiState {
   id: number;

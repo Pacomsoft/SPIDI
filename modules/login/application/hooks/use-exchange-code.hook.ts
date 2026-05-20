@@ -2,18 +2,16 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { EntraPkceAuthService, MS_ACCESS_TOKEN_KEY, MS_USER_INFO_KEY } from '../../infrastructure/services/entra-pkce-auth.service';
+import { type IAuthService } from '../../domain/contracts/auth-service.interface';
 import { LoginFailedError } from '../../domain/errors/login-failed.error';
 import { AccountDisabledError } from '../../domain/errors/account-disabled.error';
-
-const authService = new EntraPkceAuthService();
 
 interface IUseExchangeCodeResult {
   isProcessing: boolean;
   error: string | null;
 }
 
-export function useExchangeCode(): IUseExchangeCodeResult {
+export function useExchangeCode(authService: IAuthService): IUseExchangeCodeResult {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
@@ -52,15 +50,7 @@ export function useExchangeCode(): IUseExchangeCodeResult {
     authService
       .getCallbackToken(code, state)
       .then((tokenResult) => {
-        sessionStorage.setItem(MS_ACCESS_TOKEN_KEY, tokenResult.accessToken);
-        sessionStorage.setItem(
-          MS_USER_INFO_KEY,
-          JSON.stringify({
-            userId: tokenResult.userId,
-            userName: tokenResult.userName,
-            userEmail: tokenResult.userEmail,
-          }),
-        );
+        authService.saveMsSession(tokenResult);
         router.replace('/auth/spidi-token');
       })
       .catch((err: unknown) => {

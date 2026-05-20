@@ -1,5 +1,5 @@
 import { type IRoleDto } from '@/modules/login/domain/contracts/spidi-auth-service.interface';
-import { ModuleAccess } from '@/modules/adm/domain/value-objects/module-access';
+import { ModuleAccess } from '@/modules/shared/domain/value-objects/module-access';
 
 export type UserRoleValue = string;
 

@@ -1,6 +1,7 @@
 import type { IUseCase } from '@/modules/shared/domain/contracts/use-case.interface';
 import type { IApplicantRepository } from '../../domain/contracts/applicant-repository.interface';
 import type { IApplicantListItemDTO, IApplicantFiltersDTO } from '../../domain/contracts/applicant-list.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 
 export class GetApplicantsUseCase
   implements IUseCase<IApplicantFiltersDTO, IResultApi<{ items: IApplicantListItemDTO[]; total: number }>>

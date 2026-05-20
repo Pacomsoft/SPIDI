@@ -1,3 +1,4 @@
+import { type IAuthService } from '../domain/contracts/auth-service.interface';
 import { type ISessionRepository } from '../domain/contracts/session-repository.interface';
 import { type ILoginAttemptsRepository } from '../domain/contracts/login-attempts-repository.interface';
 import { type ILoginUseCase } from '../domain/contracts/login-use-case.interface';
@@ -12,6 +13,11 @@ import { InitiateLoginUseCase } from '../application/use-cases/login.use-case';
 import { ValidateTokenUseCase } from '../application/use-cases/validate-token.use-case';
 import { EnsureTokenValidUseCase } from '../application/use-cases/ensure-token-valid.use-case';
 import { IndexedDbTokenRepository } from '@/modules/shared/infrastructure/tokens/indexed-db-token.repository';
+import { MockSpidiAuthService } from './services/mock-spidi-auth.service';
+
+export function createAuthService(): IAuthService {
+  return new EntraPkceAuthService();
+}
 
 export function createSessionRepository(): ISessionRepository {
   return new IndexedDbSessionRepository();
@@ -30,7 +36,10 @@ export function createLoginUseCase(): ILoginUseCase {
 export function createValidateTokenUseCase(): IValidateTokenUseCase {
   const sessionRepository = createSessionRepository();
   const attemptsRepository = createLoginAttemptsRepository();
-  const spidiAuthService = new SpidiEntraAuthService(process.env.NEXT_PUBLIC_API_URL ?? '');
+  const useMockAuth = process.env.NEXT_PUBLIC_USE_MOCK_AUTH === 'true';
+  const spidiAuthService = useMockAuth
+    ? new MockSpidiAuthService()
+    : new SpidiEntraAuthService(process.env.NEXT_PUBLIC_API_URL ?? '');
   const tokenRepository = new IndexedDbTokenRepository();
   return new ValidateTokenUseCase(
     sessionRepository,

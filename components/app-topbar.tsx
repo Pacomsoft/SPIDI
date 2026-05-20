@@ -44,13 +44,16 @@ export function AppTopbar({ breadcrumbs }: AppTopbarProps) {
   const dynamicBreadcrumbs = React.useMemo(() => {
     if (breadcrumbs) return breadcrumbs
     
-    const segments = pathname.split("/").filter(Boolean)
-    const crumbs: { label: string; href?: string }[] = [{ label: "/", href: "/adm/home" }]
+    const segments = pathname.split("/").filter(Boolean).filter(s => s !== "adm")
+    const crumbs: { label: string; href?: string }[] = []
+
+    if (segments.length === 0 || segments[0] === "home") {
+      return [{ label: "Inicio" }]
+    }
     
     segments.forEach((segment, index) => {
-      const href = `/${segments.slice(0, index + 1).join("/")}`
+      const href = `/adm/${segments.slice(0, index + 1).join("/")}`
       
-      // Detectar si el segmento es un ID (UUID o número)
       const isId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment) || 
                    /^\d+$/.test(segment)
       

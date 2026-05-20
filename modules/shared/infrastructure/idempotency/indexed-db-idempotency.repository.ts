@@ -25,16 +25,22 @@ export class IndexedDbIdempotencyRepository implements IIdempotencyRepository {
     }
 
     const now = new Date();
-    const expiration = existing.expiration ?? now;
+    // expiration=null significa que el backend ya respondió con ETag (request completado)
+    // En ese caso se considera expirado y se genera nueva key
+    const expiration = existing.expiration ?? new Date(0);
     let { key, intentos } = existing;
 
     if (expiration <= now) {
-      intentos = existing.intentos + 1;
-    } else {
+      // El registro expiró o ya fue completado → nueva request, nueva key
       key = uuidv7();
+      intentos = 0;
+    } else {
+      // Aún dentro de la ventana de 3 min → mismo request en vuelo, incrementar intentos
+      intentos = existing.intentos + 1;
     }
 
     if (intentos >= MAX_INTENTOS) {
+      // Demasiados reintentos del mismo request → reset con nueva key
       key = uuidv7();
       intentos = 0;
     }
@@ -43,7 +49,7 @@ export class IndexedDbIdempotencyRepository implements IIdempotencyRepository {
       ...existing,
       key,
       intentos,
-      expiration: existing.expiration ?? now,
+      expiration: expiration <= now ? new Date(Date.now() + THREE_MINUTES_MS) : existing.expiration,
     });
 
     return key;
@@ -57,11 +63,13 @@ export class IndexedDbIdempotencyRepository implements IIdempotencyRepository {
     const existing = await db.getFromIndex(STORE_REQUESTS, 'by_url', url);
     if (!existing) return;
 
+    // Marcar como completado: expiration en el pasado para que el próximo
+    // fetch genere una key nueva en lugar de reusar la del request anterior
     await db.put(STORE_REQUESTS, {
       ...existing,
       key: newKey,
       intentos: 0,
-      expiration: null,
+      expiration: new Date(0), // ya completado → expira inmediatamente
     });
   }
 }

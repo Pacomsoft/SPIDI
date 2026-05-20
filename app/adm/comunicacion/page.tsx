@@ -77,6 +77,10 @@ export default function ComunicacionPage() {
           <CardDescription>Gestiona la comunicación con drivers y aspirantes</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* TODO: Agregar badge de "Resuelto automáticamente" cuando se implemente la vista de comunicación completa.
+              - resolvedAutomatically === true  → Badge gris/outline con texto "Resuelto por inactividad"
+              - resolvedAutomatically === false → Badge verde con texto "Resuelto manualmente"
+              Usar el campo `resolvedBy` / `resolvedAutomatically` del hilo/mensaje cuando exista el módulo comunicacion. */}
           <p className="text-center text-muted-foreground py-8">
             Contenido del centro de mensajes...
           </p>

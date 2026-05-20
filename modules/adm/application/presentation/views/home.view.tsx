@@ -3,12 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useConfirmDialog } from '@/modules/shared/application/hooks/use-confirm-dialog.hook';
-import { LogOut, User, Clock, ShieldCheck } from 'lucide-react';
+import { LogOut, User, Clock, ShieldCheck, LayoutDashboard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { type IGetSessionInfoUseCase } from '@/modules/adm/domain/contracts/get-session-info-use-case.interface';
 import { type IAdmSessionPort } from '@/modules/adm/domain/contracts/adm-session-port.interface';
 import { type ISessionInfoDTO } from '@/modules/adm/domain/contracts/adm.dto';
+
+const IS_LOCAL = process.env.NEXT_PUBLIC_APP_ENV === 'local';
 
 interface IHomeViewProps {
   getSessionInfoUseCase: IGetSessionInfoUseCase;
@@ -42,6 +44,22 @@ export function HomeView({ getSessionInfoUseCase, sessionPort }: IHomeViewProps)
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   };
+
+  if (!IS_LOCAL) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-4 text-center py-24">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
+          <LayoutDashboard className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-base font-medium">Selecciona un elemento del menú para comenzar</p>
+          <p className="text-sm text-muted-foreground">
+            Usa la barra lateral para navegar entre los módulos disponibles.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

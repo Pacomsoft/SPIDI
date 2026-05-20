@@ -1,7 +1,8 @@
-import { Loader2, Phone, AlertCircle, Clock } from 'lucide-react';
+import { Loader2, AlertCircle, Clock, ShieldCheck } from 'lucide-react';
 import { Button } from '../../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { type LoginErrorType } from '../../../hooks/use-login.hook';
+import { SpidiLogo } from '@/components/ui/spidi-logo';
 import styles from './style.module.scss';
 
 interface ILoginCardProps {
@@ -29,27 +30,45 @@ export function LoginCard({
 
   return (
     <div className={styles.container}>
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary">
-            <span className="text-3xl font-bold text-primary-foreground">S</span>
+      <Card className="w-full max-w-sm border-border/60 shadow-lg">
+
+        {/* ── Header ── */}
+        <CardHeader className="pb-0 pt-8 px-8 text-center space-y-5">
+
+          {/* Logo */}
+          <div className="mx-auto">
+            <SpidiLogo size={36} className="text-[#3E4C5E]" />
           </div>
-          <CardTitle className="text-2xl font-bold">Te damos la bienvenida</CardTitle>
-          <CardDescription className="text-base">
-            Inicia sesión con tu cuenta corporativa para continuar.
-          </CardDescription>
+
+          {/* Títulos */}
+          <div className="space-y-1.5">
+            <CardTitle className="text-xl font-semibold tracking-tight text-foreground">
+              Te damos la bienvenida
+            </CardTitle>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Gestión centralizada de aspirantes, drivers, pagos, capacitaciones y documentación operativa.
+            </p>
+          </div>
+
+          {/* Separador */}
+          <div className="border-t border-border/50" />
+
         </CardHeader>
-        <CardContent className="space-y-6">
+
+        {/* ── Content ── */}
+        <CardContent className="px-8 pb-8 pt-5 space-y-4">
+
+          {/* Error */}
           {error && (
-            <div className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
+            <div className={`flex items-start gap-2 rounded-md border p-3 text-xs ${
               errorType === 'too_many_attempts'
                 ? 'border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200'
                 : 'border-destructive/30 bg-destructive/10 text-destructive'
             }`}>
               {errorType === 'too_many_attempts' ? (
-                <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               ) : (
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               )}
               <span>
                 {error}
@@ -60,44 +79,35 @@ export function LoginCard({
             </div>
           )}
 
-          <Button
-            onClick={onLogin}
-            disabled={isLoading || isLockedOut}
-            className="w-full h-11 text-base font-medium"
-            size="lg"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Redirigiendo...
-              </>
-            ) : (
-              'Iniciar sesión con Microsoft'
-            )}
-          </Button>
-
-          <p className="text-center text-xs text-muted-foreground">
-            Serás redirigido a App Directory para autenticarte de forma segura.
-          </p>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-background px-2 text-muted-foreground">¿Necesitas ayuda?</span>
-            </div>
+          {/* CTA */}
+          <div className="space-y-2">
+            <p className="text-center text-sm text-muted-foreground">
+              Accede con tu cuenta corporativa para continuar
+            </p>
+            <Button
+              onClick={onLogin}
+              disabled={isLoading || isLockedOut}
+              className="w-full h-10 text-sm font-medium"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Validando credenciales...
+                </>
+              ) : (
+                'Iniciar sesión con Microsoft'
+              )}
+            </Button>
           </div>
 
-          <div className="flex items-center justify-center gap-4 text-left">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-muted">
-              <Phone className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Comunícate con nosotros</p>
-              <p className="text-sm text-muted-foreground">(81) 1234-5678 ext. 1234</p>
-            </div>
+          {/* Seguridad */}
+          <div className="flex items-center justify-center gap-1.5 pt-1">
+            <ShieldCheck className="h-3 w-3 text-muted-foreground/60" />
+            <p className="text-xs text-muted-foreground/60">
+              Acceso protegido · Solo personal autorizado
+            </p>
           </div>
+
         </CardContent>
       </Card>
     </div>

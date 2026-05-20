@@ -2,14 +2,15 @@ import axios from 'axios';
 import {
   type IAuthService,
   type ITokenResultDTO,
+  type IMsSessionDTO,
 } from '../../domain/contracts/auth-service.interface';
 import { LoginFailedError } from '../../domain/errors/login-failed.error';
 import { AccountDisabledError } from '../../domain/errors/account-disabled.error';
 
 const PKCE_VERIFIER_KEY = 'pkce_code_verifier';
 const PKCE_STATE_KEY = 'pkce_state';
-export const MS_ACCESS_TOKEN_KEY = 'ms_access_token';
-export const MS_USER_INFO_KEY = 'ms_user_info';
+const MS_ACCESS_TOKEN_KEY = 'ms_access_token';
+const MS_USER_INFO_KEY = 'ms_user_info';
 
 function base64UrlEncode(buffer: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)))
@@ -22,7 +23,11 @@ function base64UrlDecode(str: string): string {
   // Convert base64url to base64 and fix padding
   const base64 = str.replace(/-/g, '+').replace(/_/g, '/');
   const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
-  return atob(padded);
+  // Use TextDecoder to correctly handle UTF-8 characters (tildes, ñ, ü, etc.)
+  // atob() only handles Latin-1; JWT payloads from Entra ID are UTF-8 encoded
+  const binary = atob(padded);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new TextDecoder('utf-8').decode(bytes);
 }
 
 async function generateCodeVerifier(): Promise<string> {
@@ -144,5 +149,41 @@ export class EntraPkceAuthService implements IAuthService {
     }
 
     return { accessToken: access_token, userId, userName, userEmail };
+  }
+
+  saveMsSession(tokenResult: ITokenResultDTO): void {
+    sessionStorage.setItem(MS_ACCESS_TOKEN_KEY, tokenResult.accessToken);
+    sessionStorage.setItem(
+      MS_USER_INFO_KEY,
+      JSON.stringify({
+        userId: tokenResult.userId,
+        userName: tokenResult.userName,
+        userEmail: tokenResult.userEmail,
+      }),
+    );
+  }
+
+  getMsSession(): IMsSessionDTO | null {
+    const msAccessToken = sessionStorage.getItem(MS_ACCESS_TOKEN_KEY);
+    if (!msAccessToken) return null;
+
+    let userId = '';
+    let userName = '';
+    let userEmail = '';
+    try {
+      const userInfo = JSON.parse(sessionStorage.getItem(MS_USER_INFO_KEY) ?? '{}');
+      userId = userInfo.userId ?? '';
+      userName = userInfo.userName ?? '';
+      userEmail = userInfo.userEmail ?? '';
+    } catch {
+      // non-fatal, session will be created with empty user info
+    }
+
+    return { msAccessToken, userId, userName, userEmail };
+  }
+
+  clearMsSession(): void {
+    sessionStorage.removeItem(MS_ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(MS_USER_INFO_KEY);
   }
 }

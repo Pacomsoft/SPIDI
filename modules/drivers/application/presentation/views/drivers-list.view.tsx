@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useNavigationLoading } from '@/modules/shared/application/hooks/use-navigation-loading.hook';
 import { Search, Download, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { RoleGuard } from '@/modules/adm/application/presentation/components/role-guard';
 import { createCheckModuleAccessUseCase } from '@/modules/adm/infrastructure/dependency-injection';
@@ -15,6 +15,7 @@ import { Skeleton } from '../ui/skeleton';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Tabs, TabsList, TabsTrigger } from '../ui/tabs';
 
 const checkModuleAccessUseCase = createCheckModuleAccessUseCase();
 
@@ -27,7 +28,7 @@ interface IDriversListViewProps {
 type SortKey = 'firstName' | 'curp' | 'email' | 'phone' | 'stateOfCountry' | 'driverStatus' | 'lastOrderStore' | 'lastOrderDate';
 
 export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCatalogsUseCase }: IDriversListViewProps) {
-  const router = useRouter();
+  const { navigateTo } = useNavigationLoading();
   const {
     drivers, total, isLoading, page, pageSize, sortBy, sortDirection,
     search, driverStatusFilter, stateFilter, storeFilter,
@@ -90,7 +91,6 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
                       className="pl-8"
                     />
                   </div>
-                  <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
                   <Select onValueChange={value => { void handleExport(value); }}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                       <Download className="mr-2 h-4 w-4" />
@@ -102,52 +102,48 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Estado del driver</label>
-                    <div className="flex flex-wrap gap-2">
-                      {STATUS_OPTIONS.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => toggleStatus(opt.value)}
-                          className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                            driverStatusFilter.includes(opt.value)
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-background hover:bg-muted border-input'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                <div className="flex flex-col lg:flex-row gap-4">
+                  <div className="lg:flex-1 overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Estado de driver</label>
+                      <Tabs
+                        value={driverStatusFilter[0] || 'todos'}
+                        onValueChange={(v) => setDriverStatusFilter(v === 'todos' ? [] : [v])}
+                      >
+                      <TabsList className="h-9 w-max lg:w-auto inline-flex">
+                        <TabsTrigger value="todos" className="text-xs whitespace-nowrap">Todos</TabsTrigger>
+                        <TabsTrigger value="Enabled" className="text-xs whitespace-nowrap">Habilitado</TabsTrigger>
+                        <TabsTrigger value="Disabled" className="text-xs whitespace-nowrap">Deshabilitado</TabsTrigger>
+                        <TabsTrigger value="Suspended" className="text-xs whitespace-nowrap">Suspendido</TabsTrigger>
+                      </TabsList>
+                      </Tabs>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Estado donde opera</label>
-                    <Select value={stateFilter || 'all'} onValueChange={v => setStateFilter(v === 'all' ? '' : v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos los estados" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todos los estados</SelectItem>
-                        {states.map(s => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tienda último pedido</label>
-                    <Select value={storeFilter || 'all'} onValueChange={v => setStoreFilter(v === 'all' ? '' : v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todas las tiendas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas las tiendas</SelectItem>
-                        {stores.map(s => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:w-auto">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Estado donde opera</label>
+                      <Select value={stateFilter || 'all'} onValueChange={v => setStateFilter(v === 'all' ? '' : v)}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Todos los estados" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos los estados</SelectItem>
+                          {states.map(s => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">Tienda último pedido</label>
+                      <Select value={storeFilter || 'all'} onValueChange={v => setStoreFilter(v === 'all' ? '' : v)}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Todas las tiendas" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas las tiendas</SelectItem>
+                          {stores.map(s => (
+                            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -160,8 +156,7 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
               </div>
             ) : drivers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <p className="text-muted-foreground mb-4">No se encontraron drivers con los filtros seleccionados</p>
-                <Button variant="outline" onClick={clearFilters}>Limpiar filtros</Button>
+                <p className="text-muted-foreground">No se encontraron drivers con los filtros seleccionados</p>
               </div>
             ) : (
               <>
@@ -200,7 +195,7 @@ export function DriverListView({ getDriversUseCase, exportDriversUseCase, getCat
                         <TableRow
                           key={driver.id}
                           className="cursor-pointer hover:bg-muted"
-                          onClick={() => router.push(`/adm/drivers/${driver.id}`)}
+                          onClick={() => navigateTo(`/adm/drivers/${driver.id}`)}
                         >
                           <TableCell className="font-medium">{driver.firstName} {driver.paternalLastName} {driver.maternalLastName}</TableCell>
                           <TableCell className="font-mono text-xs">{driver.curp}</TableCell>

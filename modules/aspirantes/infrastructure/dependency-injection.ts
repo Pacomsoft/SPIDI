@@ -13,6 +13,8 @@ import { DeleteApplicantUseCase } from '../application/use-cases/delete-applican
 import { ExportApplicantsUseCase } from '../application/use-cases/export-applicants.use-case';
 import { CreateProposalUseCase } from '../application/use-cases/create-proposal.use-case';
 import { GetApplicantCatalogsUseCase } from '../application/use-cases/get-applicant-catalogs.use-case';
+import { GetApplicantDocumentsUseCase } from '../application/use-cases/get-applicant-documents.use-case';
+import { GetApplicantProposalsUseCase } from '../application/use-cases/get-applicant-proposals.use-case';
 import type { IGetApplicantsUseCase } from '../domain/contracts/get-applicants-use-case.interface';
 import type { IGetApplicantByIdUseCase } from '../domain/contracts/get-applicant-by-id-use-case.interface';
 import type { IUpdateApplicantUseCase } from '../domain/contracts/update-applicant-use-case.interface';
@@ -20,6 +22,8 @@ import type { IDeleteApplicantUseCase } from '../domain/contracts/delete-applica
 import type { IExportApplicantsUseCase } from '../domain/contracts/export-applicants-use-case.interface';
 import type { ICreateProposalUseCase } from '../domain/contracts/create-proposal-use-case.interface';
 import type { IGetApplicantCatalogsUseCase } from '../domain/contracts/get-applicant-catalogs-use-case.interface';
+import type { IGetApplicantDocumentsUseCase } from '../domain/contracts/get-applicant-documents-use-case.interface';
+import type { IGetApplicantProposalsUseCase } from '../domain/contracts/get-applicant-proposals-use-case.interface';
 
 export function createApplicantsModule(toastContext?: IToastContext) {
   const httpClient = new FetchHttpClient(process.env.NEXT_PUBLIC_API_URL ?? '', {
@@ -40,6 +44,8 @@ export function createApplicantsModule(toastContext?: IToastContext) {
       exportApplicants: new ExportApplicantsUseCase(repository) as IExportApplicantsUseCase,
       createProposal: new CreateProposalUseCase(repository) as ICreateProposalUseCase,
       getCatalogs: new GetApplicantCatalogsUseCase(repository) as IGetApplicantCatalogsUseCase,
+      getDocuments: new GetApplicantDocumentsUseCase(repository) as IGetApplicantDocumentsUseCase,
+      getProposals: new GetApplicantProposalsUseCase(repository) as IGetApplicantProposalsUseCase,
     },
   };
 }

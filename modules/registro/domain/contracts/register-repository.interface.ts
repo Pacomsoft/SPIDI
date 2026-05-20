@@ -3,6 +3,7 @@ import { type IStateDTO } from './state.dto';
 import { type IVerificationResult } from './verification-result.dto';
 import { type IRegistroDTO } from './registro.dto';
 import { type IRegisterApplicantDto } from './register-applicant.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 
 export interface IRegisterRepository {
   getStates(): Promise<IStateDTO[]>;

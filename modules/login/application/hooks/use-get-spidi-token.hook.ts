@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MS_ACCESS_TOKEN_KEY, MS_USER_INFO_KEY } from '../../infrastructure/services/entra-pkce-auth.service';
+import { type IAuthService } from '../../domain/contracts/auth-service.interface';
 import { type IValidateTokenUseCase } from '../../domain/contracts/validate-token-use-case.interface';
 import { TooManyAttemptsError } from '../../domain/errors/too-many-attempts.error';
 import { AccountDisabledError } from '../../domain/errors/account-disabled.error';
@@ -17,6 +17,7 @@ interface IUseGetSpidiTokenResult {
 
 export function useGetSpidiToken(
   validateTokenUseCase: IValidateTokenUseCase,
+  authService: IAuthService,
 ): IUseGetSpidiTokenResult {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(true);
@@ -27,29 +28,18 @@ export function useGetSpidiToken(
     if (executed.current) return;
     executed.current = true;
 
-    const msAccessToken = sessionStorage.getItem(MS_ACCESS_TOKEN_KEY);
+    const msSession = authService.getMsSession();
 
-    if (!msAccessToken) {
+    if (!msSession) {
       setIsProcessing(false);
       router.replace('/login?error=invalid_credentials');
       return;
     }
 
-    let userId = '';
-    let userName = '';
-    let userEmail = '';
-    try {
-      const userInfo = JSON.parse(sessionStorage.getItem(MS_USER_INFO_KEY) ?? '{}');
-      userId = userInfo.userId ?? '';
-      userName = userInfo.userName ?? '';
-      userEmail = userInfo.userEmail ?? '';
-    } catch {
-      // non-fatal, session will be created with empty user info
-    }
+    const { msAccessToken, userId, userName, userEmail } = msSession;
 
     // Clean up MS token from sessionStorage after reading
-    sessionStorage.removeItem(MS_ACCESS_TOKEN_KEY);
-    sessionStorage.removeItem(MS_USER_INFO_KEY);
+    authService.clearMsSession();
 
     const redirectAfterLogin =
       typeof window !== 'undefined'

@@ -6,6 +6,8 @@ import { type IStateDTO } from '../domain/contracts/state.dto';
 import { type IVerificationResult } from '../domain/contracts/verification-result.dto';
 import { type IRegistroDTO } from '../domain/contracts/registro.dto';
 import { type IRegisterApplicantDto } from '../domain/contracts/register-applicant.dto';
+import { type ICheckDuplicateResult } from '../domain/contracts/check-duplicate-result.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 import { ApiRegisterRepository } from './repositories/api-register.repository';
 import { GetStatesUseCase } from '../application/use-cases/get-states.use-case';
 import { RequestVerificationCodeSmsUseCase, type IRequestVerificationCodeSmsInput } from '../application/use-cases/request-verification-code-sms.use-case';
@@ -13,6 +15,7 @@ import { ValidateVerificationCodeSmsUseCase, type IValidateVerificationCodeSmsIn
 import { RequestVerificationCodeEmailUseCase, type IRequestVerificationCodeEmailInput } from '../application/use-cases/request-verification-code-email.use-case';
 import { ValidateVerificationCodeEmailUseCase, type IValidateVerificationCodeEmailInput } from '../application/use-cases/validate-verification-code-email.use-case';
 import { GuardarDriverUseCase } from '../application/use-cases/guardar-driver.use-case';
+import { CheckDuplicateUseCase, type ICheckDuplicateInput } from '../application/use-cases/check-duplicate.use-case';
 
 export function createRegisterRepository(
   httpClient: IHttpClient,
@@ -57,7 +60,29 @@ export function createGuardarDriverUseCase(
   return new GuardarDriverUseCase(registerRepository);
 }
 
-export function createRegistroModule(httpClient: IHttpClient, configuracionRepository?: IConfiguracionRepository) {
+export function createCheckDuplicateUseCase(
+  registerRepository: IRegisterRepository,
+): IUseCase<ICheckDuplicateInput, IResultApi<ICheckDuplicateResult>> {
+  return new CheckDuplicateUseCase(registerRepository);
+}
+
+export interface IRegistroModuleOutput {
+  useCases: {
+    getStates: IUseCase<void, IStateDTO[]>;
+    requestVerificationCodeSms: IUseCase<IRequestVerificationCodeSmsInput, IResultApi<IVerificationResult>>;
+    validateVerificationCodeSms: IUseCase<IValidateVerificationCodeSmsInput, IResultApi<IVerificationResult>>;
+    requestVerificationCodeEmail: IUseCase<IRequestVerificationCodeEmailInput, IResultApi<IVerificationResult>>;
+    validateVerificationCodeEmail: IUseCase<IValidateVerificationCodeEmailInput, IResultApi<IVerificationResult>>;
+    guardarDriver: IUseCase<IRegistroDTO, IResultApi<IRegisterApplicantDto>>;
+    checkDuplicate: IUseCase<ICheckDuplicateInput, IResultApi<ICheckDuplicateResult>>;
+  };
+  configuracionRepository: IConfiguracionRepository;
+}
+
+export function createRegistroModule(
+  httpClient: IHttpClient,
+  configuracionRepository: IConfiguracionRepository,
+): IRegistroModuleOutput {
   const registerRepository = createRegisterRepository(httpClient, configuracionRepository);
   return {
     useCases: {
@@ -67,6 +92,8 @@ export function createRegistroModule(httpClient: IHttpClient, configuracionRepos
       requestVerificationCodeEmail: createRequestVerificationCodeEmailUseCase(registerRepository),
       validateVerificationCodeEmail: createValidateVerificationCodeEmailUseCase(registerRepository),
       guardarDriver: createGuardarDriverUseCase(registerRepository),
+      checkDuplicate: createCheckDuplicateUseCase(registerRepository),
     },
+    configuracionRepository,
   };
 }

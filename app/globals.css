@@ -186,36 +186,6 @@
   }
 }
 
-/* Layout fixes for sidebar */
-@layer components {
-  /* Asegura que el SidebarInset tenga el margen correcto cuando el sidebar está expandido */
-  @media (min-width: 768px) {
-    .peer[data-state="expanded"] ~ main {
-      margin-left: var(--sidebar-width);
-    }
-    
-    .peer[data-state="collapsed"][data-collapsible="icon"] ~ main {
-      margin-left: var(--sidebar-width-icon);
-    }
-    
-    .peer[data-collapsible="offcanvas"][data-state="collapsed"] ~ main {
-      margin-left: 0;
-    }
-  }
-  
-  /* Asegura que el sidebar tenga el z-index correcto */
-  [data-sidebar="sidebar"] {
-    position: relative;
-    z-index: 10;
-  }
-  
-  /* Asegura que los elementos del layout no se superpongan */
-  .group\/sidebar-wrapper {
-    position: relative;
-    overflow-x: hidden;
-  }
-}
-
 /* Estilos para Quill Editor */
 @layer components {
   .ql-toolbar.ql-snow {
@@ -286,21 +256,25 @@
     @apply bg-purple-50 text-purple-700 border-purple-300;
   }
 
-  /* Dots para documentos */
-  .dot-completo {
-    @apply bg-green-500;
-  }
-
+  /* Dots para documentos — estados de negocio (RN02–RN05) */
+  /* Pendiente: doc no escaneado, en cola, o falló seguridad (Eliminado en BD) */
   .dot-pendiente {
     @apply bg-gray-300;
   }
 
-  .dot-rechazado {
-    @apply bg-slate-500;
+  /* No legible: el sistema no pudo extraer la información del documento (RN03) */
+  .dot-no-legible {
+    @apply bg-red-500;
   }
 
-  .dot-revision {
+  /* Prevalidado: datos extraídos y validados correctamente por el sistema (RN04) */
+  .dot-prevalidado {
     @apply bg-amber-500;
+  }
+
+  /* Validado: cargado por coordinador o aprobado manualmente (RN05) */
+  .dot-validado {
+    @apply bg-green-500;
   }
 }
 

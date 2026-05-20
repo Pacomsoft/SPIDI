@@ -6,11 +6,29 @@ import { type IMenuItem } from "@/modules/adm/domain/contracts/menu-item.interfa
 const GUID_SEGMENT =
   /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NUMBER_SEGMENT = /\/\d+$/;
+// Cubre IDs alfanuméricos con guiones como asp-001, drv-123, abc-XYZ-99
+const ALPHANUMERIC_ID_SEGMENT = /\/[a-zA-Z0-9]+-[a-zA-Z0-9-]+$/;
+
+function stripTrailingSlash(path: string): string {
+  return path.endsWith("/") ? path.substring(0, path.length - 1) : path;
+}
 
 function normalizePath(path: string): string {
-  if (GUID_SEGMENT.test(path)) return path.replace(GUID_SEGMENT, "/[id]");
-  if (NUMBER_SEGMENT.test(path)) return path.replace(NUMBER_SEGMENT, "/[id]");
-  return path.endsWith("/") ? path.substring(0, path.length - 1) : path;
+  const cleaned = stripTrailingSlash(path);
+  if (GUID_SEGMENT.test(cleaned)) return cleaned.replace(GUID_SEGMENT, "/[id]");
+  if (NUMBER_SEGMENT.test(cleaned)) return cleaned.replace(NUMBER_SEGMENT, "/[id]");
+  if (ALPHANUMERIC_ID_SEGMENT.test(cleaned)) return cleaned.replace(ALPHANUMERIC_ID_SEGMENT, "/[id]");
+  return cleaned;
+}
+
+/**
+ * Dado un path normalizado, retorna el path padre quitando el último segmento.
+ * Ejemplo: /adm/aspirantes/[id] → /adm/aspirantes
+ */
+function getParentPath(path: string): string | null {
+  const segments = path.split("/");
+  if (segments.length <= 2) return null; // /adm o menos, no hay padre útil
+  return segments.slice(0, -1).join("/");
 }
 
 interface IUseGuardPageResult {
@@ -32,7 +50,12 @@ export function useGuardPage(
   }
 
   const moduleAccess = ModuleAccess.create(menus ?? []);
-  const isAllowed = moduleAccess.canAccessRoute(normalizedPath);
+
+  // Primero intenta match exacto; si falla, sube al padre (herencia de permisos)
+  const parentPath = getParentPath(normalizedPath);
+  const isAllowed =
+    moduleAccess.canAccessRoute(normalizedPath) ||
+    (parentPath !== null && moduleAccess.canAccessRoute(parentPath));
 
   const allowedModules: IMenuItem[] = (menus ?? [])
     .filter((m) => m.canView)

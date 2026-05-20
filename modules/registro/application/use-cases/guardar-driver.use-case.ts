@@ -2,6 +2,7 @@ import { type IUseCase } from '@/modules/shared/domain/contracts/use-case.interf
 import { type IRegisterRepository } from '../../domain/contracts/register-repository.interface';
 import { type IRegistroDTO } from '../../domain/contracts/registro.dto';
 import { type IRegisterApplicantDto } from '../../domain/contracts/register-applicant.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 
 export class GuardarDriverUseCase implements IUseCase<IRegistroDTO, IResultApi<IRegisterApplicantDto>> {
   constructor(private readonly registerRepository: IRegisterRepository) {}

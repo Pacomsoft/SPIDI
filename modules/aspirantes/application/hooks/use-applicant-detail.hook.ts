@@ -6,6 +6,8 @@ import type { IUpdateApplicantUseCase } from '../../domain/contracts/update-appl
 import type { IDeleteApplicantUseCase } from '../../domain/contracts/delete-applicant-use-case.interface';
 import type { ICreateProposalUseCase } from '../../domain/contracts/create-proposal-use-case.interface';
 import type { IGetApplicantCatalogsUseCase } from '../../domain/contracts/get-applicant-catalogs-use-case.interface';
+import type { IGetApplicantDocumentsUseCase } from '../../domain/contracts/get-applicant-documents-use-case.interface';
+import type { IGetApplicantProposalsUseCase } from '../../domain/contracts/get-applicant-proposals-use-case.interface';
 import type { IApplicantDetailDTO, IApplicantDocumentDTO, IProposalDTO, ICreateProposalDTO } from '../../domain/contracts/applicant-detail.dto';
 import type { ICatalogItemDTO } from '../../domain/contracts/applicant-list.dto';
 import { API_ENDPOINTS } from '@/modules/shared/domain/contracts/api-endpoints.constants';
@@ -25,6 +27,8 @@ export function useApplicantDetail(
   deleteApplicantUseCase: IDeleteApplicantUseCase,
   createProposalUseCase: ICreateProposalUseCase,
   getCatalogsUseCase: IGetApplicantCatalogsUseCase,
+  getDocumentsUseCase: IGetApplicantDocumentsUseCase,
+  getProposalsUseCase: IGetApplicantProposalsUseCase,
 ) {
   const [applicant, setApplicant] = useState<IApplicantDetailDTO | null>(null);
   const [initialSnapshot, setInitialSnapshot] = useState<IApplicantDetailDTO | null>(null);
@@ -41,7 +45,7 @@ export function useApplicantDetail(
   useEffect(() => {
     const load = async () => {
       setIsLoading(true);
-      const [applicantResult, catalogsResult] = await Promise.all([
+      const [applicantResult, catalogsResult, documentsResult, proposalsResult] = await Promise.all([
         getApplicantByIdUseCase.execute(id),
         getCatalogsUseCase.execute({
           endpoints: [
@@ -52,6 +56,8 @@ export function useApplicantDetail(
             API_ENDPOINTS.CATALOGS_STATES,
           ],
         }),
+        getDocumentsUseCase.execute(id),
+        getProposalsUseCase.execute(id),
       ]);
       if (applicantResult.success && applicantResult.data) {
         setApplicant(applicantResult.data);
@@ -64,10 +70,20 @@ export function useApplicantDetail(
         fiscalRegimes: catalogsResult[API_ENDPOINTS.CATALOGS_FISCAL_REGIMES] ?? [],
         states: catalogsResult[API_ENDPOINTS.CATALOGS_STATES] ?? [],
       });
+      if (documentsResult.success && documentsResult.data) {
+        const docMap = documentsResult.data.reduce<Record<string, IApplicantDocumentDTO>>(
+          (acc, doc) => { acc[doc.type] = doc; return acc; },
+          {},
+        );
+        setDocuments(docMap);
+      }
+      if (proposalsResult.success && proposalsResult.data) {
+        setProposals(proposalsResult.data);
+      }
       setIsLoading(false);
     };
     void load();
-  }, [id, getApplicantByIdUseCase, getCatalogsUseCase]);
+  }, [id, getApplicantByIdUseCase, getCatalogsUseCase, getDocumentsUseCase, getProposalsUseCase]);
 
   // Proposal expiry countdown
   useEffect(() => {

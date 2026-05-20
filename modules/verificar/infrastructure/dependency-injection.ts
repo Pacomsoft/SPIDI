@@ -14,8 +14,16 @@ export function createVerificationStateRepository(): IVerificationStateRepositor
   return new SessionVerificationStateRepository();
 }
 
+/**
+ * SWAP POINT — Backend Integration
+ * Replace `MockOtpService` with the real implementation when the backend is ready.
+ *
+ * Example:
+ *   import { ApiOtpService } from './services/api-otp.service';
+ *   return new ApiOtpService(httpClient);
+ */
 export function createOtpService(): IOtpService {
-  return new MockOtpService();
+  return new MockOtpService(); // TODO: swap to ApiOtpService when backend is ready
 }
 
 export function createVerifyOtpUseCase(

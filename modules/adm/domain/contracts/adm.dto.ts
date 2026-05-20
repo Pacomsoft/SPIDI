@@ -1,6 +1,7 @@
-import { type UserRoleValue } from '@/modules/login/domain/value-objects/user-role';
-import { type IMenuAccess } from '@/modules/login/domain/contracts/spidi-auth-service.interface';
-import { type ModuleKey } from '../value-objects/module-access';
+import { type IMenuAccess } from '@/modules/shared/domain/contracts/menu-access.dto';
+import { type ModuleKey } from '@/modules/shared/domain/value-objects/module-access';
+
+export type UserRoleValue = string;
 
 export interface ICheckModuleAccessInputDTO {
   moduleKey: ModuleKey;

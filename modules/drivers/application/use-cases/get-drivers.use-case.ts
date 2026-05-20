@@ -1,6 +1,7 @@
 import { type IGetDriversUseCase } from '../../domain/contracts/get-drivers-use-case.interface';
 import { type IDriverRepository } from '../../domain/contracts/driver-repository.interface';
 import { type IDriverFiltersDTO, type IDriverListItemDTO } from '../../domain/contracts/driver-list.dto';
+import type { IResultApi } from '@/modules/shared/domain/entities/result-api.interface';
 
 export class GetDriversUseCase implements IGetDriversUseCase {
   constructor(private readonly repository: IDriverRepository) {}
